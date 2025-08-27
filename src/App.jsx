@@ -52,7 +52,7 @@ export default function App() {
       const res = await fetch(`${API_BASE}/fact-check/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: claim, version: "v3", mode: "sync" }),
+        body: JSON.stringify({ query: claim }),  // ← تم حذف version و mode
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "فشل بدء المهمة.");
