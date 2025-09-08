@@ -210,7 +210,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ======= Config =======
-const API_URL = "https://catch-the-thief.onrender.com/fact_check/";
+const API_URL = "https://catch-the-thief.onrender.com/fact_check_with_openai/";
 
 // ======= Component =======
 export default function AINeonFactChecker() {
