@@ -1,216 +1,134 @@
-// import { useEffect, useRef, useState } from "react";
-// import { motion } from "framer-motion";
-// import ReactMarkdown from "react-markdown";
-//
-// const API_BASE = "https://catch-the-thief.onrender.com/get_the_thief";
-// const POLL_INTERVAL_MS = 30_000; // أول استعلام بعد 30s
-// const MAX_ATTEMPTS = 3;          // 3 محاولات فقط
-//
-// export default function App() {
-//   const [text, setText] = useState("");
-//   const [taskId, setTaskId] = useState(null);
-//   const [loading, setLoading] = useState(false);
-//   const [attempt, setAttempt] = useState(0);
-//   const [result, setResult] = useState(null);
-//   const [error, setError] = useState(null);
-//   const [mdSafe, setMdSafe] = useState(true); // لو حصل خطأ أثناء Markdown
-//   const timerRef = useRef(null);
-//
-//   useEffect(() => () => clearTimer(), []);
-//
-//   function clearTimer() {
-//     if (timerRef.current) {
-//       clearTimeout(timerRef.current);
-//       timerRef.current = null;
-//     }
-//   }
-//
-//   // فك ترميزات HTML الشائعة وتنضيف ** لو عايز نص نظيف
-//   function clean(text) {
-//     if (typeof text !== "string") return "";
-//     return text
-//       .replace(/&quot;/g, '"')
-//       .replace(/&amp;/g, "&")
-//       .replace(/&lt;/g, "<")
-//       .replace(/&gt;/g, ">")
-//       .replace(/\*\*/g, ""); // شيل ** لو مش عايز bold Markdown
-//   }
-//
-//   async function startFactCheck() {
-//     setError(null);
-//     setResult(null);
-//     setMdSafe(true);
-//     setAttempt(0);
-//     setTaskId(null);
-//
-//     const claim = text.trim();
-//     if (!claim) return setError("اكتب الادعاء أولًا.");
-//
-//     setLoading(true);
-//
-//     try {
-//       const res = await fetch(`${API_BASE}/fact-check/`, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ query: claim }),  // ← تم حذف version و mode
-//       });
-//       const data = await res.json();
-//       if (!res.ok) throw new Error(data?.message || "فشل بدء المهمة.");
-//       if (!data?.task_id) throw new Error("لم يتم استلام task_id من الخادم.");
-//
-//       setTaskId(data.task_id);
-//       timerRef.current = setTimeout(() => pollStatus(data.task_id, 1), POLL_INTERVAL_MS);
-//     } catch (e) {
-//       setError(e.message || "حدث خطأ.");
-//       setLoading(false);
-//     }
-//   }
-//
-//   async function pollStatus(id, nextAttempt) {
-//     try {
-//       const res = await fetch(`${API_BASE}/fact-check-status/${id}/`);
-//       const data = await res.json();
-//
-//       // نجاح حتى لو مفيش status="SUCCESS"
-//       const isSuccess =
-//         data?.status === "SUCCESS" ||
-//         data?.overall_assessment ||
-//         data?.classification ||
-//         (data?.ok && data?.data?.overall_assessment);
-//
-//       if (isSuccess) {
-//         const assessmentRaw =
-//           data?.overall_assessment ||
-//           data?.data?.overall_assessment ||
-//           "تم التحقق ✅";
-//
-//         setResult(clean(assessmentRaw));
-//         setLoading(false);
-//         clearTimer();
-//         return;
-//       }
-//
-//       if (nextAttempt > MAX_ATTEMPTS) {
-//         setLoading(false);
-//         setError("انتهت المحاولات دون الحصول على نتيجة. جرّب لاحقًا.");
-//         clearTimer();
-//         return;
-//       }
-//
-//       setAttempt(nextAttempt);
-//       timerRef.current = setTimeout(
-//         () => pollStatus(id, nextAttempt + 1),
-//         POLL_INTERVAL_MS
-//       );
-//     } catch {
-//       if (nextAttempt > MAX_ATTEMPTS) {
-//         setLoading(false);
-//         setError("تعذر الاتصال بالخادم.");
-//         clearTimer();
-//         return;
-//       }
-//       setAttempt(nextAttempt);
-//       timerRef.current = setTimeout(
-//         () => pollStatus(id, nextAttempt + 1),
-//         POLL_INTERVAL_MS
-//       );
-//     }
-//   }
-//
-//   function cancelPolling() {
-//     clearTimer();
-//     setLoading(false);
-//     setTaskId(null);
-//   }
-//
-//   function copyResult() {
-//     if (!result) return;
-//     navigator.clipboard.writeText(result);
-//   }
-//
-//   return (
-//     <div dir="rtl" className="min-h-screen font-sans text-white flex items-center justify-center px-4">
-//       <div className="w-full max-w-3xl rounded-2xl backdrop-card shadow-lg p-6 sm:p-8">
-//         <h1 className="text-2xl font-extrabold mb-2">أداة التحقق من الأخبار</h1>
-//         <p className="opacity-80 text-sm mb-4">
-//           اكتب الادعاء المراد التحقق منه وسيتم التحليل والرجوع إليك بالنتيجة.
-//         </p>
-//
-//         <textarea
-//           className="w-full min-h-36 rounded-xl bg-[#091227] border border-white/10 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400"
-//           placeholder="مثال: الرئيس الأمريكي التقى برئيس الصين في قمة المناخ."
-//           value={text}
-//           onChange={(e) => setText(e.target.value)}
-//         />
-//
-//         <div className="mt-4 flex flex-wrap items-center gap-3">
-//           <button
-//             onClick={startFactCheck}
-//             disabled={loading}
-//             className="px-5 py-2.5 rounded-xl bg-sky-400 hover:brightness-110 font-bold disabled:opacity-50 shadow-[0_0_24px_rgba(56,189,248,.35)]"
-//           >
-//             {loading ? "جاري التحقق…" : "ابدأ التحقق"}
-//           </button>
-//
-//           {loading && (
-//             <button
-//               onClick={cancelPolling}
-//               className="px-5 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600"
-//             >
-//               إلغاء
-//             </button>
-//           )}
-//         </div>
-//
-//         {error && (
-//           <div className="mt-4 text-red-300 bg-red-900/25 border border-red-800/40 rounded-xl px-4 py-2">
-//             {error}
-//           </div>
-//         )}
-//
-//         {result && (
-//           <motion.div
-//             initial={{ opacity: 0, y: 8 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             className="mt-6 p-4 rounded-xl bg-[#0b1630] border border-white/10"
-//           >
-//             <div className="flex items-center justify-between mb-2">
-//               <h3 className="font-bold text-sky-400">النتيجة</h3>
-//               <button
-//                 onClick={copyResult}
-//                 className="text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5"
-//               >
-//                 نسخ
-//               </button>
-//             </div>
-//
-//             {/* نحاول نعرض Markdown؛ لو حصل خطأ نرجع لنص عادي */}
-//             <pre className="whitespace-pre-wrap text-sm leading-7">{result}</pre>
-//
-//           </motion.div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-//
-// /** Boundary بسيط لاكتشاف أخطاء ReactMarkdown بدون ما ينهار التطبيق */
-// function ErrorCatcher({ onError, children }) {
-//   try {
-//     return children;
-//   } catch (e) {
-//     onError?.(e);
-//     return null;
-//   }
-// }
-
-
-
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ======= Config =======
 const API_URL = "https://catch-the-thief.onrender.com/fact_check_with_openai/";
+
+// ======= Helpers =======
+const urlRegex =
+  /((https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
+
+function toAbsoluteUrl(maybeUrl) {
+  if (!/^https?:\/\//i.test(maybeUrl)) return `https://${maybeUrl}`;
+  return maybeUrl;
+}
+
+function getDomain(u) {
+  try {
+    const url = new URL(toAbsoluteUrl(u));
+    return url.hostname.replace(/^www\./i, "");
+  } catch {
+    return (u || "").replace(/^https?:\/\//i, "").split("/")[0].replace(/^www\./i, "");
+  }
+}
+
+function faviconUrl(domain) {
+  const d = (domain || "").trim();
+  if (!d) return "";
+  return `https://icons.duckduckgo.com/ip3/${d}.ico`;
+}
+
+// ========= New: List-aware renderer (fix numbers mess) =========
+const ENUM_LINE = /^\s*([0-9\u0660-\u0669]+)[\.\):\-]\s+(.+)$/; // 1. , 1) , ١. , ١)
+function splitIntoBlocks(text) {
+  // يقسم النص إلى بلوكات: فقرة عادية أو قائمة مرقّمة متتالية
+  const lines = (text || "").split(/\r?\n/);
+  const blocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // تخطّي الأسطر الفارغة المتتالية
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
+
+    // لو بداية قائمة مرقّمة
+    if (ENUM_LINE.test(line)) {
+      const items = [];
+      while (i < lines.length && ENUM_LINE.test(lines[i])) {
+        const m = lines[i].match(ENUM_LINE);
+        items.push(m[2]); // المحتوى بدون الرقم، هنربطه بعدين باللينكات
+        i++;
+      }
+      blocks.push({ type: "ol", items });
+      continue;
+    }
+
+    // غير ذلك: اجمع لحد سطر فاضي أو لحد قائمة جديدة
+    const buff = [];
+    while (i < lines.length && lines[i].trim() && !ENUM_LINE.test(lines[i])) {
+      buff.push(lines[i]);
+      i++;
+    }
+    blocks.push({ type: "p", text: buff.join(" ") });
+  }
+  return blocks;
+}
+
+// يحوّل نص إلى عناصر React مع أزرار للروابط داخل الفقرات/العناصر
+function linkifyText(txt) {
+  if (!txt) return null;
+
+  // 1) Markdown links [label](url)
+  const md = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const parts = [];
+  let last = 0, m;
+
+  while ((m = md.exec(txt)) !== null) {
+    const [full, label, href] = m;
+    const start = m.index;
+    if (start > last) parts.push(txt.slice(last, start));
+    parts.push(<LinkChip key={`md-${start}`} href={href} label={label} />);
+    last = start + full.length;
+  }
+  if (last < txt.length) parts.push(txt.slice(last));
+
+  // 2) Raw URLs
+  const out = [];
+  parts.forEach((p, idx) => {
+    if (typeof p !== "string") { out.push(p); return; }
+    let l = 0, hit;
+    while ((hit = urlRegex.exec(p)) !== null) {
+      const raw = hit[0], s = hit.index;
+      if (s > l) out.push(p.slice(l, s));
+      out.push(<LinkChip key={`url-${idx}-${s}`} href={toAbsoluteUrl(raw)} />);
+      l = s + raw.length;
+    }
+    if (l < p.length) out.push(p.slice(l));
+  });
+
+  return out.map((node, i) => typeof node === "string" ? <span key={`t-${i}`}>{node}</span> : node);
+}
+
+function renderTalkSmart(talk) {
+  const blocks = splitIntoBlocks(talk || "");
+  return blocks.map((b, idx) => {
+    if (b.type === "ol") {
+      return (
+        <ol
+          key={`b-${idx}`}
+          dir="rtl"
+          className="nice-ol ms-4 my-3 grid gap-2"
+        >
+          {b.items.map((it, j) => (
+            <li key={`it-${j}`} className="leading-8 pe-2">
+              {linkifyText(it)}
+            </li>
+          ))}
+        </ol>
+      );
+    }
+    // فقرة عادية
+    return (
+      <p key={`b-${idx}`} className="leading-8 my-2">
+        {linkifyText(b.text)}
+      </p>
+    );
+  });
+}
 
 // ======= Component =======
 export default function AINeonFactChecker() {
@@ -236,11 +154,8 @@ export default function AINeonFactChecker() {
         body: JSON.stringify({ query: q }),
       });
       const data = await res.json();
-      if (!data?.ok) {
-        throw new Error(data?.error || "تعذر الحصول على النتيجة");
-      }
+      if (!data?.ok) throw new Error(data?.error || "تعذر الحصول على النتيجة");
 
-      // Expecting: { ok, case, talk, sources[] }
       setResult({
         case: data.case || "غير متوفر",
         talk: data.talk || "لا يوجد تفسير.",
@@ -259,9 +174,13 @@ export default function AINeonFactChecker() {
       `الحالة: ${result.case}\n\n` +
       `التحليل: ${result.talk}\n\n` +
       `المصادر:\n` +
-      result.sources.map((s, i) => `- ${s.title} — ${s.url}`).join("\n");
+      (result.sources?.length
+        ? result.sources.map((s) => `- ${s.title || getDomain(s?.url)} — ${s.url}`).join("\n")
+        : "- لا يوجد");
     navigator.clipboard.writeText(text);
   }
+
+  const renderedTalk = useMemo(() => renderTalkSmart(result?.talk || ""), [result?.talk]);
 
   return (
     <div dir="rtl" className="min-h-screen relative overflow-hidden bg-[#05070e] text-white">
@@ -281,11 +200,10 @@ export default function AINeonFactChecker() {
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-400 via-fuchsia-400 to-teal-300 shadow-[0_0_40px_rgba(99,102,241,.7)] animate-orb-float" />
           <div className="absolute inset-0 w-20 h-20 rounded-full bg-white/5 backdrop-blur-[2px] ring-2 ring-white/10" />
-          {/* AI spark ring */}
           <div className="absolute -inset-2 rounded-full animate-spin-slow border-2 border-dashed border-white/10" />
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-center">
-            التحقق من الأخبار
+          التحقق من الأخبار
         </h1>
         <p className="text-white/70 text-sm md:text-base text-center max-w-2xl">
           أدخل الادعاء، وسنبحث ونحلل ونرجّع لك <span className="text-teal-300">الحالة</span>،
@@ -343,13 +261,8 @@ export default function AINeonFactChecker() {
           {/* Loader */}
           <AnimatePresence>
             {loading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="mt-6 flex items-center gap-3 text-white/80"
-              >
-                <Spinner />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-6">
+                <ManufacturingLoader />
               </motion.div>
             )}
           </AnimatePresence>
@@ -381,7 +294,9 @@ export default function AINeonFactChecker() {
                     <NeonDot color="rgba(99,102,241,1)" />
                     <h3 className="text-xl font-extrabold">التحليل</h3>
                   </div>
-                  <p className="text-white/85 leading-8">{result.talk}</p>
+                  <div className="prose prose-invert max-w-none leading-8">
+                    {renderedTalk}
+                  </div>
                 </div>
 
                 {/* Sources */}
@@ -392,26 +307,10 @@ export default function AINeonFactChecker() {
                   </div>
 
                   {result.sources?.length ? (
-                    <ul className="grid gap-3">
+                    <ul className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2">
                       {result.sources.map((s, i) => (
-                        <li
-                          key={i}
-                          className="group rounded-xl border border-white/10 bg-[#0b1327]/40 hover:bg-[#0b1327]/55 transition overflow-hidden"
-                        >
-                          <a
-                            className="flex items-center justify-between gap-3 px-4 py-3"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            href={s.url}
-                            title={s.title}
-                          >
-                            <span className="text-[15px] text-white/90 line-clamp-2">
-                              {s.title}
-                            </span>
-                            <span className="shrink-0 text-sky-300 group-hover:translate-x-0.5 transition">
-                              افتح ↗
-                            </span>
-                          </a>
+                        <li key={i}>
+                          <LinkChip href={s?.url} label={s?.title} big />
                         </li>
                       ))}
                     </ul>
@@ -425,21 +324,34 @@ export default function AINeonFactChecker() {
         </div>
       </div>
 
-      {/* Local styles for animations */}
+      {/* Local styles for animations + ordered list */}
       <style>{`
         .animate-slow-pulse { animation: slowPulse 7s ease-in-out infinite; }
         .animate-orb-float { animation: orbFloat 6s ease-in-out infinite; }
         .animate-spin-slow { animation: spinSlow 14s linear infinite; }
-        @keyframes slowPulse {
-          0%, 100% { transform: scale(1); opacity: .9; }
-          50% { transform: scale(1.08); opacity: 1; }
+        @keyframes slowPulse { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.08); opacity: 1; } }
+        @keyframes orbFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        @keyframes spinSlow { to { transform: rotate(360deg); } }
+
+        /* Ordered list بترقيم عربي أنيق */
+        .nice-ol {
+          list-style: none;
+          counter-reset: item;
+          padding-inline-start: 0;
         }
-        @keyframes orbFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
+        .nice-ol > li {
+          counter-increment: item;
+          position: relative;
+          padding-right: 2.2em; /* مسافة الرقم */
         }
-        @keyframes spinSlow {
-          to { transform: rotate(360deg); }
+        .nice-ol > li::before {
+          content: counter(item, arabic-indic) "‎. ";
+          /* arabic-indic يعمل على معظم المتصفحات الحديثة */
+          position: absolute;
+          right: 0;
+          top: 0;
+          font-weight: 800;
+          color: #7dd3fc; /* سماوي لطيف */
         }
       `}</style>
     </div>
@@ -447,23 +359,11 @@ export default function AINeonFactChecker() {
 }
 
 /* ----------------- Small UI atoms ----------------- */
-function Spinner() {
-  return (
-    <div className="relative w-5 h-5">
-      <div className="absolute inset-0 rounded-full border-2 border-white/20" />
-      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-white animate-spin" />
-    </div>
-  );
-}
-
 function NeonDot({ color = "rgba(99,102,241,1)" }) {
   return (
     <span
       className="inline-block w-2.5 h-2.5 rounded-full"
-      style={{
-        background: color,
-        boxShadow: `0 0 18px ${color}`,
-      }}
+      style={{ background: color, boxShadow: `0 0 18px ${color}` }}
     />
   );
 }
@@ -474,5 +374,101 @@ function Badge({ children }) {
       <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
       <span className="text-sm font-semibold">{children}</span>
     </span>
+  );
+}
+
+function LinkChip({ href, label, big = false }) {
+  if (!href) return null;
+  const abs = toAbsoluteUrl(href);
+  const domain = getDomain(abs);
+  const text = label?.trim() || domain;
+
+  return (
+    <a
+      href={abs}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0b1327]/40 hover:bg-[#0b1327]/60 transition px-3 py-2 shadow-[0_0_12px_rgba(56,189,248,.12)] ${big ? "w-full" : ""}`}
+      title={text}
+    >
+      <img
+        src={faviconUrl(domain)}
+        alt=""
+        className={`${big ? "w-6 h-6" : "w-4.5 h-4.5"} rounded`}
+        onError={(e) => (e.currentTarget.style.display = "none")}
+      />
+      <span className={`truncate ${big ? "text-[15px] font-semibold" : "text-sm"}`}>
+        {text}
+      </span>
+      <span className="ms-auto text-sky-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition">
+        ↗
+      </span>
+    </a>
+  );
+}
+
+// لودر “تصنيع/خط إنتاج”
+function ManufacturingLoader() {
+  return (
+    <div className="rounded-2xl p-5 bg-[#0b1327]/50 border border-white/10 overflow-hidden">
+      <div className="flex items-center gap-3 mb-4">
+        <NeonDot color="rgba(56,189,248,1)" />
+        <p className="text-white/80">محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.</p>
+      </div>
+      <div className="relative h-12 overflow-hidden rounded-lg bg-white/[.03] border border-white/10">
+        <div className="absolute inset-0 flex items-center">
+          <Conveyor />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+        <CodeBar />
+        <CodeBar delay="0.35s" />
+      </div>
+    </div>
+  );
+}
+
+function Conveyor() {
+  return (
+    <div className="relative w-full h-full">
+      <div className="absolute inset-0 flex items-center">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="mx-2 h-3 w-12 rounded bg-gradient-to-r from-indigo-400/40 to-fuchsia-400/40 animate-move-right"
+            style={{ animationDelay: `${i * 0.12}s` }}
+          />
+        ))}
+      </div>
+      <style>{`
+        .animate-move-right { animation: moveRight 1.8s linear infinite; }
+        @keyframes moveRight {
+          0% { transform: translateX(-120%); opacity: .6; }
+          50% { opacity: 1; }
+          100% { transform: translateX(120%); opacity: .6; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function CodeBar({ delay = "0s" }) {
+  return (
+    <div className="relative h-24 rounded-lg p-3 bg-black/20 border border-white/10 overflow-hidden">
+      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(transparent 70%, rgba(255,255,255,.04) 0%)", backgroundSize: "100% 20px" }} />
+      <div className="space-y-2 animate-code-flow" style={{ animationDelay: delay }}>
+        <div className="h-2.5 rounded bg-white/20 w-3/4" />
+        <div className="h-2.5 rounded bg-white/15 w-1/2" />
+        <div className="h-2.5 rounded bg-white/20 w-5/6" />
+        <div className="h-2.5 rounded bg-white/15 w-2/3" />
+      </div>
+      <style>{`
+        .animate-code-flow { animation: codeFlow 1.6s ease-in-out infinite; }
+        @keyframes codeFlow {
+          0%,100% { transform: translateY(0px); opacity: .9; }
+          50% { transform: translateY(-6px); opacity: 1; }
+        }
+      `}</style>
+    </div>
   );
 }
