@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ======= Config =======
-const API_URL = "https://catch-the-thief.onrender.com/fact_check_with_openai/";
+const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
 
 // ======= Helpers =======
 const urlRegex =
