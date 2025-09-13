@@ -1,5 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { LanguageToggle } from "./components/LanguageToggle";
 
 // ======= Config =======
 const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
@@ -131,7 +135,9 @@ function renderTalkSmart(talk) {
 }
 
 // ======= Component =======
-export default function AINeonFactChecker() {
+function AINeonFactChecker() {
+  const { isDark } = useTheme();
+  const { isArabic } = useLanguage();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -142,7 +148,7 @@ export default function AINeonFactChecker() {
     setResult(null);
     const q = query.trim();
     if (!q) {
-      setErr("اكتب الادعاء أولًا.");
+      setErr(isArabic ? "اكتب الخبر أولًا." : "Please enter the news first.");
       return;
     }
 
@@ -154,7 +160,7 @@ export default function AINeonFactChecker() {
         body: JSON.stringify({ query: q }),
       });
       const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || "تعذر الحصول على النتيجة");
+      if (!data?.ok) throw new Error(data?.error || (isArabic ? "تعذر الحصول على النتيجة" : "Failed to get result"));
 
       setResult({
         case: data.case || "غير متوفر",
@@ -162,7 +168,7 @@ export default function AINeonFactChecker() {
         sources: Array.isArray(data.sources) ? data.sources : [],
       });
     } catch (e) {
-      setErr(e.message || "حدث خطأ غير متوقع.");
+      setErr(e.message || (isArabic ? "حدث خطأ غير متوقع." : "An unexpected error occurred."));
     } finally {
       setLoading(false);
     }
@@ -171,23 +177,56 @@ export default function AINeonFactChecker() {
   function copyAll() {
     if (!result) return;
     const text =
-      `الحالة: ${result.case}\n\n` +
-      `التحليل: ${result.talk}\n\n` +
-      `المصادر:\n` +
+      `${isArabic ? "الحالة" : "Status"}: ${result.case}\n\n` +
+      `${isArabic ? "التحليل" : "Analysis"}: ${result.talk}\n\n` +
+      `${isArabic ? "المصادر" : "Sources"}:\n` +
       (result.sources?.length
         ? result.sources.map((s) => `- ${s.title || getDomain(s?.url)} — ${s.url}`).join("\n")
-        : "- لا يوجد");
-    navigator.clipboard.writeText(text);
+        : `- ${isArabic ? "لا يوجد" : "None"}`);
+    
+    navigator.clipboard.writeText(text).then(() => {
+      // Show success feedback
+      const originalText = isArabic ? "نسخ النتيجة" : "Copy Result";
+      const button = document.querySelector('[aria-label*="نسخ"]') || document.querySelector('[aria-label*="Copy"]');
+      if (button) {
+        const originalContent = button.textContent;
+        button.textContent = isArabic ? "تم النسخ!" : "Copied!";
+        button.style.background = isDark ? 'linear-gradient(to right, #10b981, #059669)' : 'linear-gradient(to right, #10b981, #059669)';
+        setTimeout(() => {
+          button.textContent = originalContent;
+          button.style.background = '';
+        }, 2000);
+      }
+    });
   }
 
   const renderedTalk = useMemo(() => renderTalkSmart(result?.talk || ""), [result?.talk]);
 
   return (
-    <div dir="rtl" className="min-h-screen relative overflow-hidden bg-[#05070e] text-white">
+    <div dir="rtl" className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${
+      isDark 
+        ? 'bg-[#05070e] text-white' 
+        : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-800'
+    }`}>
       {/* Animated gradient background */}
       <div className="pointer-events-none absolute inset-0">
+        {isDark ? (
+          <>
         <div className="absolute -top-1/4 -right-1/4 w-[60vw] h-[60vw] rounded-full blur-3xl bg-[radial-gradient(circle_at_center,_rgba(88,101,242,0.18),_transparent_60%)] animate-slow-pulse" />
         <div className="absolute -bottom-1/4 -left-1/4 w-[55vw] h-[55vw] rounded-full blur-3xl bg-[radial-gradient(circle_at_center,_rgba(24,182,155,0.18),_transparent_60%)] animate-slow-pulse delay-300" />
+          </>
+        ) : (
+          <>
+            <div className="absolute -top-1/4 -right-1/4 w-[60vw] h-[60vw] rounded-full blur-3xl bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15),_transparent_60%)] animate-slow-pulse" />
+            <div className="absolute -bottom-1/4 -left-1/4 w-[55vw] h-[55vw] rounded-full blur-3xl bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15),_transparent_60%)] animate-slow-pulse delay-300" />
+          </>
+        )}
+      </div>
+
+      {/* Theme and Language Toggles */}
+      <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
+        <ThemeToggle />
+        <LanguageToggle />
       </div>
 
       {/* AI orb / character */}
@@ -198,48 +237,289 @@ export default function AINeonFactChecker() {
         className="mx-auto pt-10 flex flex-col items-center gap-4"
       >
         <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-400 via-fuchsia-400 to-teal-300 shadow-[0_0_40px_rgba(99,102,241,.7)] animate-orb-float" />
-          <div className="absolute inset-0 w-20 h-20 rounded-full bg-white/5 backdrop-blur-[2px] ring-2 ring-white/10" />
-          <div className="absolute -inset-2 rounded-full animate-spin-slow border-2 border-dashed border-white/10" />
+          {/* Energy field lines */}
+          <div className="absolute inset-0 w-20 h-20">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={`line-${i}`}
+                className={`absolute w-px h-8 animate-energy-line ${
+                  isDark ? 'bg-gradient-to-b from-indigo-400/60 to-transparent' : 'bg-gradient-to-b from-blue-400/60 to-transparent'
+                }`}
+                style={{
+                  left: `${20 + Math.cos(i * 60 * Math.PI / 180) * 35}px`,
+                  top: `${20 + Math.sin(i * 60 * Math.PI / 180) * 35}px`,
+                  transform: `rotate(${i * 60}deg)`,
+                  animationDelay: `${i * 0.3}s`,
+                  animationDuration: `${2 + i * 0.2}s`
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Floating particles */}
+          <div className="absolute inset-0 w-20 h-20">
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className={`absolute w-1 h-1 rounded-full animate-float-particle ${
+                  isDark ? 'bg-white/60' : 'bg-blue-400/60'
+                }`}
+                style={{
+                  left: `${20 + Math.cos(i * 30 * Math.PI / 180) * (25 + Math.sin(i) * 10)}px`,
+                  top: `${20 + Math.sin(i * 30 * Math.PI / 180) * (25 + Math.sin(i) * 10)}px`,
+                  animationDelay: `${i * 0.15}s`,
+                  animationDuration: `${3 + i * 0.2}s`
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Outer glow rings */}
+          <div className={`absolute -inset-6 rounded-full animate-pulse-glow ${
+            isDark 
+              ? 'bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-teal-500/20'
+              : 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20'
+          }`} />
+          <div className={`absolute -inset-4 rounded-full animate-pulse-glow-delayed ${
+            isDark 
+              ? 'bg-gradient-to-r from-indigo-400/15 via-fuchsia-400/15 to-teal-400/15'
+              : 'bg-gradient-to-r from-blue-400/15 via-purple-400/15 to-pink-400/15'
+          }`} />
+
+          {/* Main orb with enhanced gradient */}
+          <div className={`relative w-20 h-20 rounded-full animate-orb-float ${
+            isDark 
+              ? 'bg-gradient-to-br from-indigo-400 via-fuchsia-400 to-teal-300 shadow-[0_0_60px_rgba(99,102,241,.8),0_0_120px_rgba(168,85,247,.4)]'
+              : 'bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-[0_0_60px_rgba(59,130,246,.8),0_0_120px_rgba(168,85,247,.4)]'
+          }`}>
+            {/* Dynamic light sweep */}
+            <div className="absolute inset-0 rounded-full overflow-hidden">
+              <div className={`absolute inset-0 rounded-full animate-light-sweep ${
+                isDark 
+                  ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent'
+                  : 'bg-gradient-to-r from-transparent via-white/40 to-transparent'
+              }`} />
+            </div>
+            
+            {/* Inner shine effect */}
+            <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
+            
+            {/* Core glow with pulse */}
+            <div className={`absolute inset-4 rounded-full animate-core-pulse ${
+              isDark 
+                ? 'bg-gradient-to-br from-white/10 to-transparent'
+                : 'bg-gradient-to-br from-white/30 to-transparent'
+            }`} />
+            
+            {/* Central energy core */}
+            <div className={`absolute inset-6 rounded-full ${
+              isDark 
+                ? 'bg-gradient-to-br from-white/15 to-transparent'
+                : 'bg-gradient-to-br from-white/25 to-transparent'
+            }`} />
+          </div>
+
+          {/* Rotating outer ring */}
+          <div className={`absolute -inset-3 rounded-full animate-spin-slow border-2 border-dashed ${
+            isDark ? 'border-white/20' : 'border-white/30'
+          }`} />
+          
+          {/* Inner rotating ring */}
+          <div className={`absolute -inset-1 rounded-full animate-spin-reverse border border-dashed ${
+            isDark ? 'border-white/15' : 'border-white/25'
+          }`} />
+
+          {/* Data stream rings */}
+          <div className="absolute -inset-8 w-36 h-36">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={`stream-${i}`}
+                className={`absolute rounded-full border border-dashed animate-data-stream ${
+                  isDark ? 'border-white/10' : 'border-slate-300/30'
+                }`}
+                style={{
+                  width: `${80 + i * 20}px`,
+                  height: `${80 + i * 20}px`,
+                  left: `${18 - i * 10}px`,
+                  top: `${18 - i * 10}px`,
+                  animationDelay: `${i * 0.5}s`,
+                  animationDuration: `${8 + i * 2}s`
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Holographic overlay */}
+          <div className={`absolute inset-0 w-20 h-20 rounded-full backdrop-blur-[1px] ${
+            isDark ? 'bg-white/5' : 'bg-white/20'
+          }`} style={{
+            background: isDark 
+              ? 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%)'
+              : 'linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(255,255,255,0.1) 100%)'
+          }} />
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-center">
-          التحقق من الأخبار
+          {isArabic ? "التحقق من الأخبار" : "Fact Checker"}
         </h1>
-        <p className="text-white/70 text-sm md:text-base text-center max-w-2xl">
-          أدخل الادعاء، وسنبحث ونحلل ونرجّع لك <span className="text-teal-300">الحالة</span>،
-          <span className="text-indigo-300"> التحليل</span>، و
-          <span className="text-fuchsia-300"> المصادر</span>
+        <p className={`text-sm md:text-base text-center max-w-2xl ${
+          isDark ? 'text-white/70' : 'text-slate-600'
+        }`}>
+          {isArabic ? (
+            <>
+              أدخل الخبر، وسنبحث ونحلل ونرجّع لك <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>الحالة</span>،
+              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> التحليل</span>، و
+              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> المصادر</span>
+            </>
+          ) : (
+            <>
+              Enter your claim, and we'll search, analyze, and return the <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>status</span>,
+              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> analysis</span>, and
+              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> sources</span>
+            </>
+          )}
         </p>
       </motion.div>
 
       {/* Main card */}
-      <div className="relative z-10 mx-auto mt-8 w-full max-w-3xl p-1 rounded-2xl bg-gradient-to-r from-indigo-500/30 via-fuchsia-500/30 to-teal-500/30">
-        <div className="rounded-2xl bg-[#0a0f1c]/70 backdrop-blur-xl p-5 sm:p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,.06)]">
+      <div className={`relative z-10 mx-auto mt-8 w-full max-w-3xl p-1 rounded-2xl ${
+        isDark 
+          ? 'bg-gradient-to-r from-indigo-500/30 via-fuchsia-500/30 to-teal-500/30'
+          : 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20'
+      }`}>
+        <div className={`rounded-2xl backdrop-blur-xl p-5 sm:p-6 ${
+          isDark 
+            ? 'bg-[#0a0f1c]/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,.06)]'
+            : 'bg-white/80 shadow-[inset_0_0_0_1px_rgba(0,0,0,.06)]'
+        }`}>
           {/* Input */}
           <div className="flex flex-col gap-3">
-            <label className="text-sm text-white/70">اكتب عنوان الخبر المراد التحقق منه</label>
+            <label className={`text-sm ${
+              isDark ? 'text-white/70' : 'text-slate-600'
+            }`}>
+              {isArabic ? "اكتب عنوان الخبر المراد التحقق منه" : "Enter the news headline to fact-check"}
+            </label>
             <textarea
-              className="min-h-[120px] rounded-xl bg-[#0b1327] border border-white/10 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400/60 shadow-[0_0_20px_rgba(99,102,241,.08)]"
-              placeholder=""
+              className={`min-h-[120px] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition-colors resize-none ${
+                isDark 
+                  ? 'bg-[#0b1327] border border-white/20 focus:ring-indigo-400/60 shadow-[0_0_20px_rgba(99,102,241,.08)] text-white placeholder-white/60'
+                  : 'bg-white border border-slate-300 focus:ring-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,.08)] text-slate-800 placeholder-slate-500'
+              }`}
+              placeholder={isArabic ? "مثال: الرئيس الأمريكي أعلن عن قرار جديد..." : "Example: The US President announced a new decision..."}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleCheck();
+                }
+              }}
+              aria-label={isArabic ? "مربع إدخال النص للتحقق من الخبر" : "Text input for fact-checking"}
+              aria-describedby="input-help"
             />
             <div className="flex items-center gap-3 flex-wrap">
-              <button
+              <motion.button
                 onClick={handleCheck}
                 disabled={loading}
-                className="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition font-bold disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_10px_30px_rgba(99,102,241,.35)]"
+                className={`relative px-8 py-4 rounded-2xl font-bold text-lg overflow-hidden transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group focus:outline-none focus:ring-4 focus:ring-indigo-400/50 ${
+                  isDark 
+                    ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(99,102,241,.4)]'
+                    : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(59,130,246,.4)]'
+                }`}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: isDark 
+                    ? '0_25px_50px_rgba(99,102,241,.6)' 
+                    : '0_25px_50px_rgba(59,130,246,.6)'
+                }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                aria-label={isArabic ? "زر التحقق من الخبر" : "Fact check button"}
+                tabIndex={0}
               >
-                {loading ? "⏳ جاري التحقق…" : "✅ تحقق الآن"}
-              </button>
+                {/* Animated background gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-r ${
+                  isDark 
+                    ? 'from-indigo-600 via-purple-600 to-pink-600'
+                    : 'from-blue-600 via-purple-600 to-pink-600'
+                } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -top-2 -left-2 w-[calc(100%+16px)] h-[calc(100%+16px)] bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                
+                {/* Button content */}
+                <span className="relative z-10 flex items-center gap-2">
+                  {loading ? (
+                    <>
+                      <motion.div
+                        className="relative w-5 h-5"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      >
+                        {/* Outer spinning ring */}
+                        <motion.div
+                          className="absolute inset-0 border-2 border-white/30 border-t-white rounded-full"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        />
+                        {/* Inner pulsing dot */}
+                        <motion.div
+                          className="absolute top-1/2 left-1/2 w-1.5 h-1.5 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                          animate={{ 
+                            scale: [1, 1.5, 1],
+                            opacity: [0.5, 1, 0.5]
+                          }}
+                          transition={{ 
+                            duration: 1.5, 
+                            repeat: Infinity, 
+                            ease: "easeInOut" 
+                          }}
+                        />
+                      </motion.div>
+                      <motion.span
+                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        {isArabic ? "جاري التحقق…" : "Checking..."}
+                      </motion.span>
+                    </>
+                  ) : (
+                    <>
+                      <motion.span
+                        animate={{ rotate: [0, 10, -10, 0] }}
+                        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                      >
+                        ✅
+                      </motion.span>
+                      <span>{isArabic ? "تحقق الآن" : "Check Now"}</span>
+                    </>
+                  )}
+                </span>
+                
+                {/* Glow effect */}
+                <div className={`absolute -inset-1 rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isDark 
+                    ? 'bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400'
+                    : 'bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400'
+                }`} />
+              </motion.button>
 
               {result && (
-                <button
+                <motion.button
                   onClick={copyAll}
-                  className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition font-semibold"
+                  className={`px-5 py-2.5 rounded-xl transition font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
+                    isDark 
+                      ? 'bg-white/10 hover:bg-white/15 border border-white/10'
+                      : 'bg-slate-100 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label={isArabic ? "نسخ نتيجة التحقق" : "Copy verification result"}
+                  tabIndex={0}
                 >
-                  نسخ النتيجة
-                </button>
+                  {isArabic ? "نسخ النتيجة" : "Copy Result"}
+                </motion.button>
               )}
             </div>
           </div>
@@ -251,7 +531,13 @@ export default function AINeonFactChecker() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mt-4 text-red-300 bg-red-900/20 border border-red-900/30 rounded-xl px-4 py-2"
+                className={`mt-4 rounded-xl px-4 py-3 ${
+                  isDark 
+                    ? 'text-red-200 bg-red-900/30 border border-red-800/50'
+                    : 'text-red-700 bg-red-100 border border-red-300'
+                }`}
+                role="alert"
+                aria-live="polite"
               >
                 {err}
               </motion.div>
@@ -271,53 +557,94 @@ export default function AINeonFactChecker() {
           <AnimatePresence>
             {result && !loading && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35 }}
-                className="mt-6 grid gap-5"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="mt-8 grid gap-6"
               >
                 {/* Case */}
-                <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-emerald-600/90 to-teal-500/80 shadow-[0_10px_40px_rgba(16,185,129,.35)]">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
+                <motion.div 
+                  className={`rounded-2xl p-6 sm:p-7 ${
+                    isDark 
+                      ? 'bg-gradient-to-br from-emerald-600/90 to-teal-500/80 shadow-[0_15px_50px_rgba(16,185,129,.4)]'
+                      : 'bg-gradient-to-br from-emerald-500/90 to-teal-400/80 shadow-[0_15px_50px_rgba(16,185,129,.3)]'
+                  }`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
                       <NeonDot color="rgba(16,185,129,1)" />
-                      <h3 className="text-xl font-extrabold">الحالة</h3>
+                      <h3 className="text-2xl font-extrabold">{isArabic ? "الحالة" : "Status"}</h3>
                     </div>
                     <Badge>{result.case}</Badge>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Talk */}
-                <div className="rounded-2xl p-4 sm:p-5 bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-2 mb-2">
+                <motion.div 
+                  className={`rounded-2xl p-6 sm:p-7 ${
+                    isDark 
+                      ? 'bg-white/8 border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,.2)]'
+                      : 'bg-white/70 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,.1)]'
+                  }`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
                     <NeonDot color="rgba(99,102,241,1)" />
-                    <h3 className="text-xl font-extrabold">التحليل</h3>
+                    <h3 className="text-2xl font-extrabold">{isArabic ? "التحليل" : "Analysis"}</h3>
                   </div>
-                  <div className="prose prose-invert max-w-none leading-8">
+                  <div className={`prose max-w-none leading-8 text-base ${
+                    isDark ? 'prose-invert' : 'prose-slate'
+                  }`}>
                     {renderedTalk}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Sources */}
-                <div className="rounded-2xl p-4 sm:p-5 bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-2 mb-3">
+                <motion.div 
+                  className={`rounded-2xl p-6 sm:p-7 ${
+                    isDark 
+                      ? 'bg-white/8 border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,.2)]'
+                      : 'bg-white/70 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,.1)]'
+                  }`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="flex items-center gap-3 mb-5">
                     <NeonDot color="rgba(56,189,248,1)" />
-                    <h3 className="text-xl font-extrabold">المصادر</h3>
+                    <h3 className="text-2xl font-extrabold">{isArabic ? "المصادر" : "Sources"}</h3>
                   </div>
 
                   {result.sources?.length ? (
-                    <ul className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2">
+                    <ul className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                       {result.sources.map((s, i) => (
-                        <li key={i}>
+                        <motion.li 
+                          key={i}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 + i * 0.1 }}
+                        >
                           <LinkChip href={s?.url} label={s?.title} big />
-                        </li>
+                        </motion.li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-white/60">لا توجد مصادر متاحة.</p>
+                    <motion.p 
+                      className={`text-center py-8 ${isDark ? 'text-white/60' : 'text-slate-500'}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      {isArabic ? "لا توجد مصادر متاحة." : "No sources available."}
+                    </motion.p>
                   )}
-                </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -329,9 +656,112 @@ export default function AINeonFactChecker() {
         .animate-slow-pulse { animation: slowPulse 7s ease-in-out infinite; }
         .animate-orb-float { animation: orbFloat 6s ease-in-out infinite; }
         .animate-spin-slow { animation: spinSlow 14s linear infinite; }
-        @keyframes slowPulse { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.08); opacity: 1; } }
-        @keyframes orbFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        @keyframes spinSlow { to { transform: rotate(360deg); } }
+        .animate-spin-reverse { animation: spinReverse 12s linear infinite; }
+        .animate-pulse-glow { animation: pulseGlow 4s ease-in-out infinite; }
+        .animate-pulse-glow-delayed { animation: pulseGlow 4s ease-in-out infinite 1s; }
+        .animate-float-particle { animation: floatParticle 3s ease-in-out infinite; }
+        .animate-energy-line { animation: energyLine 2s ease-in-out infinite; }
+        .animate-light-sweep { animation: lightSweep 3s ease-in-out infinite; }
+        .animate-core-pulse { animation: corePulse 2s ease-in-out infinite; }
+        .animate-data-stream { animation: dataStream 8s linear infinite; }
+        
+        @keyframes slowPulse { 
+          0%, 100% { transform: scale(1); opacity: .9; } 
+          50% { transform: scale(1.08); opacity: 1; } 
+        }
+        @keyframes orbFloat { 
+          0%, 100% { transform: translateY(0px) scale(1); } 
+          50% { transform: translateY(-10px) scale(1.05); } 
+        }
+        @keyframes spinSlow { 
+          to { transform: rotate(360deg); } 
+        }
+        @keyframes spinReverse { 
+          to { transform: rotate(-360deg); } 
+        }
+        @keyframes pulseGlow { 
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.3; 
+            filter: blur(8px);
+          } 
+          50% { 
+            transform: scale(1.2); 
+            opacity: 0.6; 
+            filter: blur(12px);
+          } 
+        }
+        @keyframes floatParticle { 
+          0%, 100% { 
+            transform: translateY(0px) translateX(0px) scale(1); 
+            opacity: 0.6; 
+          } 
+          25% { 
+            transform: translateY(-15px) translateX(5px) scale(1.2); 
+            opacity: 1; 
+          } 
+          50% { 
+            transform: translateY(-25px) translateX(-5px) scale(0.8); 
+            opacity: 0.8; 
+          } 
+          75% { 
+            transform: translateY(-10px) translateX(8px) scale(1.1); 
+            opacity: 0.9; 
+          } 
+        }
+        @keyframes energyLine { 
+          0%, 100% { 
+            transform: scaleY(0.3) rotate(var(--rotation, 0deg)); 
+            opacity: 0.3; 
+          } 
+          50% { 
+            transform: scaleY(1.2) rotate(var(--rotation, 0deg)); 
+            opacity: 0.8; 
+          } 
+        }
+        @keyframes lightSweep { 
+          0% { 
+            transform: translateX(-100%) rotate(0deg); 
+            opacity: 0; 
+          } 
+          50% { 
+            opacity: 1; 
+          } 
+          100% { 
+            transform: translateX(100%) rotate(180deg); 
+            opacity: 0; 
+          } 
+        }
+        @keyframes corePulse { 
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.6; 
+          } 
+          50% { 
+            transform: scale(1.1); 
+            opacity: 1; 
+          } 
+        }
+        @keyframes dataStream { 
+          0% { 
+            transform: rotate(0deg) scale(1); 
+            opacity: 0.3; 
+          } 
+          25% { 
+            opacity: 0.6; 
+          } 
+          50% { 
+            transform: rotate(180deg) scale(1.05); 
+            opacity: 0.4; 
+          } 
+          75% { 
+            opacity: 0.7; 
+          } 
+          100% { 
+            transform: rotate(360deg) scale(1); 
+            opacity: 0.3; 
+          } 
+        }
 
         /* Ordered list بترقيم عربي أنيق */
         .nice-ol {
@@ -369,15 +799,23 @@ function NeonDot({ color = "rgba(99,102,241,1)" }) {
 }
 
 function Badge({ children }) {
+  const { isDark } = useTheme();
   return (
-    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/25 border border-white/15 backdrop-blur-[2px]">
-      <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
+    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full backdrop-blur-[2px] ${
+      isDark 
+        ? 'bg-black/25 border border-white/15'
+        : 'bg-white/80 border border-slate-200'
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${
+        isDark ? 'bg-white/70' : 'bg-slate-600'
+      }`} />
       <span className="text-sm font-semibold">{children}</span>
     </span>
   );
 }
 
 function LinkChip({ href, label, big = false }) {
+  const { isDark } = useTheme();
   if (!href) return null;
   const abs = toAbsoluteUrl(href);
   const domain = getDomain(abs);
@@ -388,7 +826,11 @@ function LinkChip({ href, label, big = false }) {
       href={abs}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0b1327]/40 hover:bg-[#0b1327]/60 transition px-3 py-2 shadow-[0_0_12px_rgba(56,189,248,.12)] ${big ? "w-full" : ""}`}
+      className={`group inline-flex items-center gap-2 rounded-xl transition px-3 py-2 ${big ? "w-full" : ""} ${
+        isDark 
+          ? 'border border-white/10 bg-[#0b1327]/40 hover:bg-[#0b1327]/60 shadow-[0_0_12px_rgba(56,189,248,.12)]'
+          : 'border border-slate-200 bg-white/60 hover:bg-white/80 shadow-[0_0_12px_rgba(59,130,246,.12)]'
+      }`}
       title={text}
     >
       <img
@@ -400,22 +842,33 @@ function LinkChip({ href, label, big = false }) {
       <span className={`truncate ${big ? "text-[15px] font-semibold" : "text-sm"}`}>
         {text}
       </span>
-      <span className="ms-auto text-sky-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition">
+      <span className={`ms-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition ${
+        isDark ? 'text-sky-300' : 'text-blue-500'
+      }`}>
         ↗
       </span>
     </a>
   );
 }
 
-// لودر “تصنيع/خط إنتاج”
+// لودر "تصنيع/خط إنتاج"
 function ManufacturingLoader() {
+  const { isDark } = useTheme();
   return (
-    <div className="rounded-2xl p-5 bg-[#0b1327]/50 border border-white/10 overflow-hidden">
+    <div className={`rounded-2xl p-5 overflow-hidden ${
+      isDark 
+        ? 'bg-[#0b1327]/50 border border-white/10'
+        : 'bg-white/60 border border-slate-200'
+    }`}>
       <div className="flex items-center gap-3 mb-4">
         <NeonDot color="rgba(56,189,248,1)" />
-        <p className="text-white/80">محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.</p>
+        <p className={isDark ? 'text-white/80' : 'text-slate-600'}>محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.</p>
       </div>
-      <div className="relative h-12 overflow-hidden rounded-lg bg-white/[.03] border border-white/10">
+      <div className={`relative h-12 overflow-hidden rounded-lg border ${
+        isDark 
+          ? 'bg-white/[.03] border-white/10'
+          : 'bg-slate-100 border-slate-200'
+      }`}>
         <div className="absolute inset-0 flex items-center">
           <Conveyor />
         </div>
@@ -453,14 +906,32 @@ function Conveyor() {
 }
 
 function CodeBar({ delay = "0s" }) {
+  const { isDark } = useTheme();
   return (
-    <div className="relative h-24 rounded-lg p-3 bg-black/20 border border-white/10 overflow-hidden">
-      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(transparent 70%, rgba(255,255,255,.04) 0%)", backgroundSize: "100% 20px" }} />
+    <div className={`relative h-24 rounded-lg p-3 overflow-hidden ${
+      isDark 
+        ? 'bg-black/20 border border-white/10'
+        : 'bg-slate-100 border border-slate-200'
+    }`}>
+      <div className={`absolute inset-0 opacity-20`} style={{ 
+        backgroundImage: isDark 
+          ? "linear-gradient(transparent 70%, rgba(255,255,255,.04) 0%)" 
+          : "linear-gradient(transparent 70%, rgba(0,0,0,.04) 0%)", 
+        backgroundSize: "100% 20px" 
+      }} />
       <div className="space-y-2 animate-code-flow" style={{ animationDelay: delay }}>
-        <div className="h-2.5 rounded bg-white/20 w-3/4" />
-        <div className="h-2.5 rounded bg-white/15 w-1/2" />
-        <div className="h-2.5 rounded bg-white/20 w-5/6" />
-        <div className="h-2.5 rounded bg-white/15 w-2/3" />
+        <div className={`h-2.5 rounded w-3/4 ${
+          isDark ? 'bg-white/20' : 'bg-slate-300'
+        }`} />
+        <div className={`h-2.5 rounded w-1/2 ${
+          isDark ? 'bg-white/15' : 'bg-slate-200'
+        }`} />
+        <div className={`h-2.5 rounded w-5/6 ${
+          isDark ? 'bg-white/20' : 'bg-slate-300'
+        }`} />
+        <div className={`h-2.5 rounded w-2/3 ${
+          isDark ? 'bg-white/15' : 'bg-slate-200'
+        }`} />
       </div>
       <style>{`
         .animate-code-flow { animation: codeFlow 1.6s ease-in-out infinite; }
@@ -470,5 +941,16 @@ function CodeBar({ delay = "0s" }) {
         }
       `}</style>
     </div>
+  );
+}
+
+// Main App component with ThemeProvider and LanguageProvider
+export default function App() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AINeonFactChecker />
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

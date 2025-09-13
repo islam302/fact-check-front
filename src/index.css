@@ -7,8 +7,15 @@ body {
               linear-gradient(180deg, #0a1630 0%, #0e1c3f 100%);
 }
 
-/* طبقة النجوم */
-.stars, .stars:after, .stars:before {
+/* Light mode background */
+body:not(.dark) {
+  background: radial-gradient(1200px 800px at 50% -200px, rgba(59,130,246,0.1) 0%, transparent 60%),
+              radial-gradient(1200px 800px at 50% 120%, rgba(168,85,247,0.1) 0%, transparent 60%),
+              linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* طبقة النجوم - فقط في الوضع الداكن */
+.dark .stars, .dark .stars:after, .dark .stars:before {
   content: "";
   position: fixed;
   inset: 0;
@@ -16,14 +23,14 @@ body {
   pointer-events: none;
   z-index: 0;
 }
-.stars {
+.dark .stars {
   background-image:
     radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,.6) 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 70% 80%, rgba(255,255,255,.45) 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 40% 60%, rgba(255,255,255,.4) 50%, transparent 51%);
   animation: twinkle 9s infinite linear;
 }
-.stars:after {
+.dark .stars:after {
   background-image:
     radial-gradient(1.5px 1.5px at 10% 70%, rgba(255,255,255,.35) 50%, transparent 51%),
     radial-gradient(1px 1px at 85% 35%, rgba(255,255,255,.3) 50%, transparent 51%);
