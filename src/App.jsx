@@ -203,7 +203,7 @@ function AINeonFactChecker() {
   const renderedTalk = useMemo(() => renderTalkSmart(result?.talk || ""), [result?.talk]);
 
   return (
-    <div dir="rtl" className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${
+    <div dir="rtl" className={`min-h-screen relative overflow-hidden transition-colors duration-500 px-3 sm:px-0 ${
       isDark 
         ? 'bg-[#05070e] text-white' 
         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-800'
@@ -224,7 +224,10 @@ function AINeonFactChecker() {
       </div>
 
       {/* Theme and Language Toggles */}
-      <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
+      <div
+        className="absolute z-20 flex sm:flex-col flex-row gap-3 sm:gap-4 top-3 left-3 sm:top-6 sm:left-6 scale-90 sm:scale-100"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}
+      >
         <ThemeToggle />
         <LanguageToggle />
       </div>
@@ -358,10 +361,10 @@ function AINeonFactChecker() {
               : 'linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(255,255,255,0.1) 100%)'
           }} />
         </div>
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-center">
+        <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-center">
           {isArabic ? "التحقق من الأخبار" : "Fact Checker"}
         </h1>
-        <p className={`text-sm md:text-base text-center max-w-2xl ${
+        <p className={`text-xs sm:text-sm md:text-base text-center max-w-[90vw] sm:max-w-xl md:max-w-2xl ${
           isDark ? 'text-white/70' : 'text-slate-600'
         }`}>
           {isArabic ? (
@@ -381,12 +384,12 @@ function AINeonFactChecker() {
       </motion.div>
 
       {/* Main card */}
-      <div className={`relative z-10 mx-auto mt-8 w-full max-w-3xl p-1 rounded-2xl ${
+      <div className={`relative z-10 mx-auto mt-6 sm:mt-8 w-full max-w-3xl p-1 rounded-2xl ${
         isDark 
           ? 'bg-gradient-to-r from-indigo-500/30 via-fuchsia-500/30 to-teal-500/30'
           : 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20'
       }`}>
-        <div className={`rounded-2xl backdrop-blur-xl p-5 sm:p-6 ${
+        <div className={`rounded-2xl backdrop-blur-xl p-4 sm:p-6 ${
           isDark 
             ? 'bg-[#0a0f1c]/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,.06)]'
             : 'bg-white/80 shadow-[inset_0_0_0_1px_rgba(0,0,0,.06)]'
@@ -399,7 +402,7 @@ function AINeonFactChecker() {
               {isArabic ? "اكتب عنوان الخبر المراد التحقق منه" : "Enter the news headline to fact-check"}
             </label>
             <textarea
-              className={`min-h-[120px] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 transition-colors resize-none ${
+              className={`min-h-[100px] sm:min-h-[120px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 transition-colors resize-none ${
                 isDark 
                   ? 'bg-[#0b1327] border border-white/20 focus:ring-indigo-400/60 shadow-[0_0_20px_rgba(99,102,241,.08)] text-white placeholder-white/60'
                   : 'bg-white border border-slate-300 focus:ring-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,.08)] text-slate-800 placeholder-slate-500'
@@ -416,11 +419,11 @@ function AINeonFactChecker() {
               aria-label={isArabic ? "مربع إدخال النص للتحقق من الخبر" : "Text input for fact-checking"}
               aria-describedby="input-help"
             />
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
               <motion.button
                 onClick={handleCheck}
                 disabled={loading}
-                className={`relative px-8 py-4 rounded-2xl font-bold text-lg overflow-hidden transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group focus:outline-none focus:ring-4 focus:ring-indigo-400/50 ${
+                className={`relative px-5 py-3 sm:px-8 sm:py-4 rounded-2xl font-semibold sm:font-bold text-base sm:text-lg overflow-hidden transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group focus:outline-none focus:ring-4 focus:ring-indigo-400/50 ${
                   isDark 
                     ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(99,102,241,.4)]'
                     : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(59,130,246,.4)]'
@@ -851,24 +854,34 @@ function LinkChip({ href, label, big = false }) {
   );
 }
 
-// لودر "تصنيع/خط إنتاج"
+
 function ManufacturingLoader() {
   const { isDark } = useTheme();
+  const { isArabic } = useLanguage();
+
   return (
-    <div className={`rounded-2xl p-5 overflow-hidden ${
-      isDark 
-        ? 'bg-[#0b1327]/50 border border-white/10'
-        : 'bg-white/60 border border-slate-200'
-    }`}>
+    <div
+      className={`rounded-2xl p-5 overflow-hidden ${
+        isDark
+          ? "bg-[#0b1327]/50 border border-white/10"
+          : "bg-white/60 border border-slate-200"
+      }`}
+    >
       <div className="flex items-center gap-3 mb-4">
         <NeonDot color="rgba(56,189,248,1)" />
-        <p className={isDark ? 'text-white/80' : 'text-slate-600'}>محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.</p>
+        <p className={isDark ? "text-white/80" : "text-slate-600"}>
+          {isArabic
+            ? "محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم."
+            : "AI engine is working… gathering evidence, matching facts, and forming the verdict."}
+        </p>
       </div>
-      <div className={`relative h-12 overflow-hidden rounded-lg border ${
-        isDark 
-          ? 'bg-white/[.03] border-white/10'
-          : 'bg-slate-100 border-slate-200'
-      }`}>
+      <div
+        className={`relative h-12 overflow-hidden rounded-lg border ${
+          isDark
+            ? "bg-white/[.03] border-white/10"
+            : "bg-slate-100 border-slate-200"
+        }`}
+      >
         <div className="absolute inset-0 flex items-center">
           <Conveyor />
         </div>
