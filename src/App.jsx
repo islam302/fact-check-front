@@ -227,8 +227,8 @@ function AINeonFactChecker() {
 
       {/* Theme and Language Toggles */}
       <div
-        className="absolute z-20 flex sm:flex-col flex-row gap-3 sm:gap-4 top-3 left-3 sm:top-6 sm:left-6 scale-90 sm:scale-100"
-        style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}
+        className="absolute z-20 flex sm:flex-col flex-row gap-2 sm:gap-4 top-2 left-2 sm:top-6 sm:left-6 scale-75 sm:scale-100"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 0.25rem)' }}
       >
         <ThemeToggle />
         <LanguageToggle />
@@ -239,12 +239,12 @@ function AINeonFactChecker() {
         initial={{ opacity: 0, y: -10, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.8 }}
-        className="mx-auto pt-10 flex flex-col items-center gap-4"
+        className="mx-auto pt-16 sm:pt-10 flex flex-col items-center gap-4"
       >
         <img
           src={isDark ? unaLogoDark : unaLogoLight}
           alt={isArabic ? "شعار الجامعة" : "University Logo"}
-          className="h-12 sm:h-14 md:h-16 lg:h-20 max-w-[70vw] mb-3 object-contain select-none"
+          className="h-16 sm:h-18 md:h-20 lg:h-24 max-w-[80vw] mb-4 object-contain select-none"
           draggable="false"
         />
         <div className="relative">
