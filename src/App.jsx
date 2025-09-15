@@ -4,6 +4,8 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageToggle } from "./components/LanguageToggle";
+import unaLogoDark from "./assets/unalogo-dark.png";
+import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
 const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
@@ -239,6 +241,12 @@ function AINeonFactChecker() {
         transition={{ duration: 0.8 }}
         className="mx-auto pt-10 flex flex-col items-center gap-4"
       >
+        <img
+          src={isDark ? unaLogoDark : unaLogoLight}
+          alt={isArabic ? "شعار الجامعة" : "University Logo"}
+          className="h-12 sm:h-14 md:h-16 lg:h-20 max-w-[70vw] mb-3 object-contain select-none"
+          draggable="false"
+        />
         <div className="relative">
           {/* Energy field lines */}
           <div className="absolute inset-0 w-20 h-20">
