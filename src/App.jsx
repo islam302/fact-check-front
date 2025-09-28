@@ -8,7 +8,7 @@ import unaLogoDark from "./assets/unalogo-dark.png";
 import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
-const API_URL = "http://127.0.0.1:8000/fact_check/";
+const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
 
 // ======= Helpers =======
 const urlRegex =
@@ -444,35 +444,58 @@ function AINeonFactChecker() {
               aria-describedby="input-help"
             />
             {/* Generation Options */}
-            <div className="flex flex-wrap gap-4 mb-3">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="flex flex-wrap gap-3 mb-3">
+              {/* News Article chip */}
+              <label className="cursor-pointer">
                 <input
                   type="checkbox"
                   checked={generateNews}
                   onChange={(e) => setGenerateNews(e.target.checked)}
-                  className={`w-4 h-4 rounded focus:ring-2 focus:ring-indigo-400 ${
-                    isDark 
-                      ? 'bg-[#0b1327] border-white/30 text-indigo-400' 
-                      : 'bg-white border-slate-300 text-blue-500'
-                  }`}
+                  className="sr-only"
+                  aria-label={isArabic ? 'تفعيل صياغة خبر' : 'Toggle generate news article'}
                 />
-                <span className={`text-sm ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
-                  {isArabic ? "صياغة خبر" : "Generate News Article"}
+                <span
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                    isDark 
+                      ? (generateNews
+                          ? 'bg-emerald-600/20 border-emerald-400/40 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,.25)]'
+                          : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10')
+                      : (generateNews
+                          ? 'bg-emerald-100 border-emerald-300 text-emerald-700 shadow-[0_0_14px_rgba(16,185,129,.15)]'
+                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
+                  }`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-emerald-300' : 'text-emerald-600'}>
+                    <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
+                  </svg>
+                  <span>{isArabic ? 'صياغة خبر' : 'Generate News Article'}</span>
                 </span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+
+              {/* X/Tweet chip */}
+              <label className="cursor-pointer">
                 <input
                   type="checkbox"
                   checked={generateTweet}
                   onChange={(e) => setGenerateTweet(e.target.checked)}
-                  className={`w-4 h-4 rounded focus:ring-2 focus:ring-indigo-400 ${
-                    isDark 
-                      ? 'bg-[#0b1327] border-white/30 text-indigo-400' 
-                      : 'bg-white border-slate-300 text-blue-500'
-                  }`}
+                  className="sr-only"
+                  aria-label={isArabic ? 'تفعيل صياغة تويتة' : 'Toggle generate tweet'}
                 />
-                <span className={`text-sm ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
-                  {isArabic ? "صياغة تويتة" : "Generate Tweet"}
+                <span
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                    isDark 
+                      ? (generateTweet
+                          ? 'bg-blue-600/20 border-sky-400/40 text-sky-200 shadow-[0_0_18px_rgba(59,130,246,.25)]'
+                          : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10')
+                      : (generateTweet
+                          ? 'bg-blue-100 border-blue-300 text-blue-700 shadow-[0_0_14px_rgba(59,130,246,.15)]'
+                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
+                  }`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-sky-300' : 'text-blue-600'}>
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  <span>{isArabic ? 'صياغة تويتة' : 'Generate Tweet'}</span>
                 </span>
               </label>
             </div>
@@ -730,23 +753,91 @@ function AINeonFactChecker() {
                             const button = event.target;
                             const originalText = button.textContent;
                             button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
-                            button.style.background = isDark ? 'linear-gradient(to right, #10b981, #059669)' : 'linear-gradient(to right, #10b981, #059669)';
+                            button.style.background = isDark ? 'linear-gradient(135deg, #10b981, #059669, #047857)' : 'linear-gradient(135deg, #10b981, #059669, #047857)';
                             setTimeout(() => {
                               button.textContent = originalText;
                               button.style.background = '';
                             }, 2000);
                           });
                         }}
-                        className={`px-4 py-2 rounded-xl transition font-semibold focus:outline-none focus:ring-2 focus:ring-green-400/50 ${
+                        className={`relative overflow-hidden group px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-400/50 ${
                           isDark 
-                            ? 'bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300'
-                            : 'bg-green-100 hover:bg-green-200 border border-green-300 text-green-700'
+                            ? 'bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 text-white shadow-[0_8px_32px_rgba(16,185,129,.4)] hover:shadow-[0_12px_40px_rgba(16,185,129,.6)]'
+                            : 'bg-gradient-to-r from-emerald-500 via-green-400 to-teal-400 text-white shadow-[0_8px_32px_rgba(16,185,129,.3)] hover:shadow-[0_12px_40px_rgba(16,185,129,.5)]'
                         }`}
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ 
+                          scale: 1.05,
+                          rotateX: 5,
+                          y: -2
+                        }}
                         whileTap={{ scale: 0.95 }}
                         aria-label={isArabic ? "نسخ الخبر المصاغ" : "Copy generated news article"}
                       >
-                        📋 {isArabic ? "نسخ الخبر" : "Copy News"}
+                        {/* Animated background gradient */}
+                        <div className={`absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                          isDark 
+                            ? 'from-emerald-500 via-green-400 to-teal-400'
+                            : 'from-emerald-400 via-green-300 to-teal-300'
+                        }`} />
+                        
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 -top-2 -left-2 w-[calc(100%+16px)] h-[calc(100%+16px)] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        
+                        {/* Newspaper icon and text */}
+                        <span className="relative z-10 flex items-center gap-2">
+                          <motion.svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="text-white"
+                            animate={{ 
+                              rotate: [0, 5, -5, 0],
+                              scale: [1, 1.1, 1]
+                            }}
+                            transition={{ 
+                              duration: 2, 
+                              repeat: Infinity, 
+                              repeatDelay: 3 
+                            }}
+                            aria-hidden="true"
+                          >
+                            <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
+                          </motion.svg>
+                          <span>{isArabic ? "نسخ الخبر" : "Create Article"}</span>
+                        </span>
+                        
+                        {/* Glow effect */}
+                        <div className={`absolute -inset-1 rounded-2xl blur-md opacity-0 group-hover:opacity-70 transition-opacity duration-300 ${
+                          isDark 
+                            ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400'
+                            : 'bg-gradient-to-r from-emerald-300 via-green-300 to-teal-300'
+                        }`} />
+                        
+                        {/* Floating particles */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          {[...Array(3)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              className="absolute w-1 h-1 bg-white/60 rounded-full"
+                              style={{
+                                left: `${20 + i * 25}%`,
+                                top: `${30 + i * 15}%`,
+                              }}
+                              animate={{
+                                y: [-5, -15, -5],
+                                opacity: [0, 1, 0],
+                                scale: [0.5, 1, 0.5]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                delay: i * 0.3,
+                                repeatDelay: 1
+                              }}
+                            />
+                          ))}
+                        </div>
                       </motion.button>
                     </div>
                     <div className={`rounded-xl p-6 border-2 ${
@@ -786,23 +877,98 @@ function AINeonFactChecker() {
                             const button = event.target;
                             const originalText = button.textContent;
                             button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
-                            button.style.background = isDark ? 'linear-gradient(to right, #3b82f6, #1d4ed8)' : 'linear-gradient(to right, #3b82f6, #1d4ed8)';
+                            button.style.background = isDark ? 'linear-gradient(135deg, #1da1f2, #0d8bd9, #0570de)' : 'linear-gradient(135deg, #1da1f2, #0d8bd9, #0570de)';
                             setTimeout(() => {
                               button.textContent = originalText;
                               button.style.background = '';
                             }, 2000);
                           });
                         }}
-                        className={`px-4 py-2 rounded-xl transition font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400/50 ${
+                        className={`relative overflow-hidden group px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400/50 ${
                           isDark 
-                            ? 'bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300'
-                            : 'bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-700'
+                            ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500 text-white shadow-[0_8px_32px_rgba(29,161,242,.4)] hover:shadow-[0_12px_40px_rgba(29,161,242,.6)]'
+                            : 'bg-gradient-to-r from-blue-500 via-sky-400 to-cyan-400 text-white shadow-[0_8px_32px_rgba(29,161,242,.3)] hover:shadow-[0_12px_40px_rgba(29,161,242,.5)]'
                         }`}
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ 
+                          scale: 1.05,
+                          rotateX: -5,
+                          y: -2
+                        }}
                         whileTap={{ scale: 0.95 }}
                         aria-label={isArabic ? "نسخ التويته المصاغة" : "Copy generated tweet"}
                       >
-                        🐦 {isArabic ? "نسخ التويته" : "Copy Tweet"}
+                        {/* Animated background gradient */}
+                        <div className={`absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                          isDark 
+                            ? 'from-blue-500 via-sky-400 to-cyan-400'
+                            : 'from-blue-400 via-sky-300 to-cyan-300'
+                        }`} />
+                        
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 -top-2 -left-2 w-[calc(100%+16px)] h-[calc(100%+16px)] bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                        
+                        {/* X/Twitter icon and text */}
+                        <span className="relative z-10 flex items-center gap-2">
+                          <motion.svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="text-white"
+                            animate={{ 
+                              rotate: [0, 5, -5, 0],
+                              scale: [1, 1.1, 1]
+                            }}
+                            transition={{ 
+                              duration: 2, 
+                              repeat: Infinity, 
+                              repeatDelay: 3 
+                            }}
+                          >
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                          </motion.svg>
+                          <span>{isArabic ? "نسخ التويته" : "X Tweet"}</span>
+                        </span>
+                        
+                        {/* Glow effect */}
+                        <div className={`absolute -inset-1 rounded-2xl blur-md opacity-0 group-hover:opacity-70 transition-opacity duration-300 ${
+                          isDark 
+                            ? 'bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400'
+                            : 'bg-gradient-to-r from-blue-300 via-sky-300 to-cyan-300'
+                        }`} />
+                        
+                        {/* Flying tweet particles */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          {[...Array(4)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              className="absolute text-xs opacity-60"
+                              style={{
+                                left: `${15 + i * 20}%`,
+                                top: `${25 + i * 10}%`,
+                              }}
+                              animate={{
+                                x: [0, 10, 0],
+                                y: [-3, -12, -3],
+                                opacity: [0, 0.8, 0],
+                                scale: [0.3, 0.8, 0.3]
+                              }}
+                              transition={{
+                                duration: 1.8,
+                                repeat: Infinity,
+                                delay: i * 0.4,
+                                repeatDelay: 2
+                              }}
+                            >
+                              {i % 2 === 0 ? '💬' : '🔄'}
+                            </motion.div>
+                          ))}
+                        </div>
+                        
+                        {/* Pulsing border */}
+                        <div className="absolute inset-0 rounded-2xl border-2 border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="absolute inset-0 rounded-2xl border-2 border-white/10 animate-pulse" />
+                        </div>
                       </motion.button>
                     </div>
                     <div className={`rounded-xl p-4 border-2 ${
