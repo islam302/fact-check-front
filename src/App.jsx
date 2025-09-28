@@ -8,7 +8,7 @@ import unaLogoDark from "./assets/unalogo-dark.png";
 import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
-const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
+const API_URL = "http://127.0.0.1:8000/fact_check/";
 
 // ======= Helpers =======
 const urlRegex =
@@ -144,6 +144,8 @@ function AINeonFactChecker() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [generateNews, setGenerateNews] = useState(false);
+  const [generateTweet, setGenerateTweet] = useState(false);
 
   async function handleCheck() {
     setErr("");
@@ -159,7 +161,11 @@ function AINeonFactChecker() {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ 
+          query: q,
+          generate_news: generateNews,
+          generate_tweet: generateTweet
+        }),
       });
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || (isArabic ? "تعذر الحصول على النتيجة" : "Failed to get result"));
@@ -168,6 +174,8 @@ function AINeonFactChecker() {
         case: data.case || "غير متوفر",
         talk: data.talk || "لا يوجد تفسير.",
         sources: Array.isArray(data.sources) ? data.sources : [],
+        news_article: data.news_article || null,
+        x_tweet: data.x_tweet || null,
       });
     } catch (e) {
       setErr(e.message || (isArabic ? "حدث خطأ غير متوقع." : "An unexpected error occurred."));
@@ -178,13 +186,21 @@ function AINeonFactChecker() {
 
   function copyAll() {
     if (!result) return;
-    const text =
+    let text =
       `${isArabic ? "الحالة" : "Status"}: ${result.case}\n\n` +
       `${isArabic ? "التحليل" : "Analysis"}: ${result.talk}\n\n` +
       `${isArabic ? "المصادر" : "Sources"}:\n` +
       (result.sources?.length
         ? result.sources.map((s) => `- ${s.title || getDomain(s?.url)} — ${s.url}`).join("\n")
         : `- ${isArabic ? "لا يوجد" : "None"}`);
+    
+    if (result.news_article) {
+      text += `\n\n${isArabic ? "خبر مصاغ" : "Generated News Article"}:\n${result.news_article}`;
+    }
+    
+    if (result.x_tweet) {
+      text += `\n\n${isArabic ? "تويتة مصاغة" : "Generated Tweet"}:\n${result.x_tweet}`;
+    }
     
     navigator.clipboard.writeText(text).then(() => {
       // Show success feedback
@@ -427,6 +443,40 @@ function AINeonFactChecker() {
               aria-label={isArabic ? "مربع إدخال النص للتحقق من الخبر" : "Text input for fact-checking"}
               aria-describedby="input-help"
             />
+            {/* Generation Options */}
+            <div className="flex flex-wrap gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={generateNews}
+                  onChange={(e) => setGenerateNews(e.target.checked)}
+                  className={`w-4 h-4 rounded focus:ring-2 focus:ring-indigo-400 ${
+                    isDark 
+                      ? 'bg-[#0b1327] border-white/30 text-indigo-400' 
+                      : 'bg-white border-slate-300 text-blue-500'
+                  }`}
+                />
+                <span className={`text-sm ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
+                  {isArabic ? "صياغة خبر" : "Generate News Article"}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={generateTweet}
+                  onChange={(e) => setGenerateTweet(e.target.checked)}
+                  className={`w-4 h-4 rounded focus:ring-2 focus:ring-indigo-400 ${
+                    isDark 
+                      ? 'bg-[#0b1327] border-white/30 text-indigo-400' 
+                      : 'bg-white border-slate-300 text-blue-500'
+                  }`}
+                />
+                <span className={`text-sm ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
+                  {isArabic ? "صياغة تويتة" : "Generate Tweet"}
+                </span>
+              </label>
+            </div>
+
             <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
               <motion.button
                 onClick={handleCheck}
@@ -656,6 +706,133 @@ function AINeonFactChecker() {
                     </motion.p>
                   )}
                 </motion.div>
+
+                {/* Generated News Article */}
+                {result.news_article && (
+                  <motion.div 
+                    className={`rounded-2xl p-6 sm:p-7 ${
+                      isDark 
+                        ? 'bg-white/8 border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,.2)]'
+                        : 'bg-white/70 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,.1)]'
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <NeonDot color="rgba(34,197,94,1)" />
+                        <h3 className="text-2xl font-extrabold">{isArabic ? "خبر مصاغ" : "Generated News Article"}</h3>
+                      </div>
+                      <motion.button
+                        onClick={() => {
+                          navigator.clipboard.writeText(result.news_article).then(() => {
+                            const button = event.target;
+                            const originalText = button.textContent;
+                            button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
+                            button.style.background = isDark ? 'linear-gradient(to right, #10b981, #059669)' : 'linear-gradient(to right, #10b981, #059669)';
+                            setTimeout(() => {
+                              button.textContent = originalText;
+                              button.style.background = '';
+                            }, 2000);
+                          });
+                        }}
+                        className={`px-4 py-2 rounded-xl transition font-semibold focus:outline-none focus:ring-2 focus:ring-green-400/50 ${
+                          isDark 
+                            ? 'bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300'
+                            : 'bg-green-100 hover:bg-green-200 border border-green-300 text-green-700'
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        aria-label={isArabic ? "نسخ الخبر المصاغ" : "Copy generated news article"}
+                      >
+                        📋 {isArabic ? "نسخ الخبر" : "Copy News"}
+                      </motion.button>
+                    </div>
+                    <div className={`rounded-xl p-6 border-2 ${
+                      isDark 
+                        ? 'bg-[#0a0a0a] border-white/20' 
+                        : 'bg-[#f8fafc] border-slate-200'
+                    }`}>
+                      <div className={`prose max-w-none leading-8 text-base whitespace-pre-line ${
+                        isDark ? 'prose-invert' : 'prose-slate'
+                      }`}>
+                        {result.news_article}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Generated Tweet */}
+                {result.x_tweet && (
+                  <motion.div 
+                    className={`rounded-2xl p-6 sm:p-7 ${
+                      isDark 
+                        ? 'bg-white/8 border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,.2)]'
+                        : 'bg-white/70 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,.1)]'
+                    }`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <NeonDot color="rgba(59,130,246,1)" />
+                        <h3 className="text-2xl font-extrabold">{isArabic ? "تويتة مصاغة" : "Generated Tweet"}</h3>
+                      </div>
+                      <motion.button
+                        onClick={() => {
+                          navigator.clipboard.writeText(result.x_tweet).then(() => {
+                            const button = event.target;
+                            const originalText = button.textContent;
+                            button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
+                            button.style.background = isDark ? 'linear-gradient(to right, #3b82f6, #1d4ed8)' : 'linear-gradient(to right, #3b82f6, #1d4ed8)';
+                            setTimeout(() => {
+                              button.textContent = originalText;
+                              button.style.background = '';
+                            }, 2000);
+                          });
+                        }}
+                        className={`px-4 py-2 rounded-xl transition font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400/50 ${
+                          isDark 
+                            ? 'bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300'
+                            : 'bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-700'
+                        }`}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        aria-label={isArabic ? "نسخ التويته المصاغة" : "Copy generated tweet"}
+                      >
+                        🐦 {isArabic ? "نسخ التويته" : "Copy Tweet"}
+                      </motion.button>
+                    </div>
+                    <div className={`rounded-xl p-4 border-2 ${
+                      isDark 
+                        ? 'bg-[#0a0a0a] border-white/20' 
+                        : 'bg-[#f8fafc] border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-full ${
+                          isDark ? 'bg-blue-500' : 'bg-blue-400'
+                        } flex items-center justify-center text-white font-bold`}>
+                          F
+                        </div>
+                        <div>
+                          <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {isArabic ? 'متحقق من الأخبار' : 'Fact Checker'}
+                          </div>
+                          <div className={`text-sm ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                            @factchecker
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-base leading-relaxed ${
+                        isDark ? 'text-white' : 'text-slate-900'
+                      }`}>
+                        {result.x_tweet}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
