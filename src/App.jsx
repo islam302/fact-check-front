@@ -10,6 +10,112 @@ import unaLogoLight from "./assets/unalogo-light.png";
 // ======= Config =======
 const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
 
+// ======= i18n (AR / EN / FR) =======
+const TRANSLATIONS = {
+  arabic: {
+    logoAlt: "شعار الجامعة",
+    title: "التحقق من الأخبار",
+    inputLabel: "اكتب عنوان الخبر المراد التحقق منه",
+    placeholder: "مثال: الرئيس الأمريكي أعلن عن قرار جديد...",
+    ariaInput: "مربع إدخال النص للتحقق من الخبر",
+    toggleGenerateNewsAria: "تفعيل صياغة خبر",
+    generateNewsLabel: "صياغة خبر",
+    toggleGenerateTweetAria: "تفعيل صياغة تويتة",
+    generateTweetLabel: "صياغة تويتة",
+    errorNoQuery: "اكتب الخبر أولًا.",
+    errorFetch: "تعذر الحصول على النتيجة",
+    errorUnexpected: "حدث خطأ غير متوقع.",
+    status: "الحالة",
+    analysis: "التحليل",
+    sources: "المصادر",
+    none: "لا يوجد",
+    noSources: "لا توجد مصادر متاحة.",
+    generatedNews: "خبر مصاغ",
+    copyGeneratedNewsAria: "نسخ الخبر المصاغ",
+    copyGeneratedTweetAria: "نسخ التويته المصاغة",
+    buttonCopyNewsText: "نسخ الخبر",
+    buttonCopyTweetText: "نسخ التويته",
+    tweetHeading: "تويتة مصاغة",
+    tweetCardTitle: "متحقق من الأخبار",
+    copyVerificationAria: "نسخ نتيجة التحقق",
+    copyResult: "نسخ النتيجة",
+    copied: "تم النسخ!",
+    checkBtnAria: "زر التحقق من الخبر",
+    checking: "جاري التحقق…",
+    checkNow: "تحقق الآن",
+    heroLine: null,
+    loaderLine: "محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.",
+  },
+  english: {
+    logoAlt: "University Logo",
+    title: "Fact Checker",
+    inputLabel: "Enter the news headline to fact-check",
+    placeholder: "Example: The US President announced a new decision...",
+    ariaInput: "Text input for fact-checking",
+    toggleGenerateNewsAria: "Toggle generate news article",
+    generateNewsLabel: "Generate News Article",
+    toggleGenerateTweetAria: "Toggle generate tweet",
+    generateTweetLabel: "Generate Tweet",
+    errorNoQuery: "Please enter the news first.",
+    errorFetch: "Failed to get result",
+    errorUnexpected: "An unexpected error occurred.",
+    status: "Status",
+    analysis: "Analysis",
+    sources: "Sources",
+    none: "None",
+    noSources: "No sources available.",
+    generatedNews: "Generated News Article",
+    copyGeneratedNewsAria: "Copy generated news article",
+    copyGeneratedTweetAria: "Copy generated tweet",
+    buttonCopyNewsText: "Create Article",
+    buttonCopyTweetText: "X Tweet",
+    tweetHeading: "Generated Tweet",
+    tweetCardTitle: "Fact Checker",
+    copyVerificationAria: "Copy verification result",
+    copyResult: "Copy Result",
+    copied: "Copied!",
+    checkBtnAria: "Fact check button",
+    checking: "Checking...",
+    checkNow: "Check Now",
+    heroLine: null,
+    loaderLine: "AI engine is working… gathering evidence, matching facts, and forming the verdict.",
+  },
+  french: {
+    logoAlt: "Logo de l’université",
+    title: "Vérificateur de faits",
+    inputLabel: "Saisissez le titre de la nouvelle à vérifier",
+    placeholder: "Exemple : Le président américain a annoncé une nouvelle décision...",
+    ariaInput: "Zone de texte pour la vérification des faits",
+    toggleGenerateNewsAria: "Activer la génération d’article",
+    generateNewsLabel: "Générer un article",
+    toggleGenerateTweetAria: "Activer la génération de tweet",
+    generateTweetLabel: "Générer un tweet",
+    errorNoQuery: "Veuillez d’abord saisir la nouvelle.",
+    errorFetch: "Échec de l’obtention du résultat",
+    errorUnexpected: "Une erreur inattendue s’est produite.",
+    status: "Statut",
+    analysis: "Analyse",
+    sources: "Sources",
+    none: "Aucun",
+    noSources: "Aucune source disponible.",
+    generatedNews: "Article généré",
+    copyGeneratedNewsAria: "Copier l’article généré",
+    copyGeneratedTweetAria: "Copier le tweet généré",
+    buttonCopyNewsText: "Copier l’article",
+    buttonCopyTweetText: "Tweet X",
+    tweetHeading: "Tweet généré",
+    tweetCardTitle: "Vérificateur de faits",
+    copyVerificationAria: "Copier le résultat de vérification",
+    copyResult: "Copier le résultat",
+    copied: "Copié !",
+    checkBtnAria: "Bouton de vérification",
+    checking: "Vérification…",
+    checkNow: "Vérifier maintenant",
+    heroLine: "Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le ",
+    loaderLine: "Le moteur d’IA travaille… collecte des preuves, recoupe les faits et établit le verdict.",
+  }
+};
+
 // ======= Helpers =======
 const urlRegex =
   /((https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
@@ -139,7 +245,8 @@ function renderTalkSmart(talk) {
 // ======= Component =======
 function AINeonFactChecker() {
   const { isDark } = useTheme();
-  const { isArabic } = useLanguage();
+  const { isArabic, language } = useLanguage();
+  const T = TRANSLATIONS[language] || TRANSLATIONS.english;
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -152,7 +259,7 @@ function AINeonFactChecker() {
     setResult(null);
     const q = query.trim();
     if (!q) {
-      setErr(isArabic ? "اكتب الخبر أولًا." : "Please enter the news first.");
+      setErr(T.errorNoQuery);
       return;
     }
 
@@ -168,7 +275,7 @@ function AINeonFactChecker() {
         }),
       });
       const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || (isArabic ? "تعذر الحصول على النتيجة" : "Failed to get result"));
+      if (!data?.ok) throw new Error(data?.error || T.errorFetch);
 
       setResult({
         case: data.case || "غير متوفر",
@@ -178,7 +285,7 @@ function AINeonFactChecker() {
         x_tweet: data.x_tweet || null,
       });
     } catch (e) {
-      setErr(e.message || (isArabic ? "حدث خطأ غير متوقع." : "An unexpected error occurred."));
+      setErr(e.message || T.errorUnexpected);
     } finally {
       setLoading(false);
     }
@@ -187,28 +294,28 @@ function AINeonFactChecker() {
   function copyAll() {
     if (!result) return;
     let text =
-      `${isArabic ? "الحالة" : "Status"}: ${result.case}\n\n` +
-      `${isArabic ? "التحليل" : "Analysis"}: ${result.talk}\n\n` +
-      `${isArabic ? "المصادر" : "Sources"}:\n` +
+      `${T.status}: ${result.case}\n\n` +
+      `${T.analysis}: ${result.talk}\n\n` +
+      `${T.sources}:\n` +
       (result.sources?.length
         ? result.sources.map((s) => `- ${s.title || getDomain(s?.url)} — ${s.url}`).join("\n")
-        : `- ${isArabic ? "لا يوجد" : "None"}`);
+        : `- ${T.none}`);
     
     if (result.news_article) {
-      text += `\n\n${isArabic ? "خبر مصاغ" : "Generated News Article"}:\n${result.news_article}`;
+      text += `\n\n${T.generatedNews}:\n${result.news_article}`;
     }
     
     if (result.x_tweet) {
-      text += `\n\n${isArabic ? "تويتة مصاغة" : "Generated Tweet"}:\n${result.x_tweet}`;
+      text += `\n\n${T.tweetHeading}:\n${result.x_tweet}`;
     }
     
     navigator.clipboard.writeText(text).then(() => {
       // Show success feedback
-      const originalText = isArabic ? "نسخ النتيجة" : "Copy Result";
+      const originalText = T.copyResult;
       const button = document.querySelector('[aria-label*="نسخ"]') || document.querySelector('[aria-label*="Copy"]');
       if (button) {
         const originalContent = button.textContent;
-        button.textContent = isArabic ? "تم النسخ!" : "Copied!";
+        button.textContent = T.copied;
         button.style.background = isDark ? 'linear-gradient(to right, #10b981, #059669)' : 'linear-gradient(to right, #10b981, #059669)';
         setTimeout(() => {
           button.textContent = originalContent;
@@ -221,7 +328,7 @@ function AINeonFactChecker() {
   const renderedTalk = useMemo(() => renderTalkSmart(result?.talk || ""), [result?.talk]);
 
   return (
-    <div dir="rtl" className={`min-h-screen relative overflow-hidden transition-colors duration-500 px-3 sm:px-0 ${
+    <div dir={isArabic ? 'rtl' : 'ltr'} className={`min-h-screen relative overflow-hidden transition-colors duration-500 px-3 sm:px-0 ${
       isDark 
         ? 'bg-[#05070e] text-white' 
         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-800'
@@ -259,7 +366,7 @@ function AINeonFactChecker() {
       >
         <img
           src={isDark ? unaLogoDark : unaLogoLight}
-          alt={isArabic ? "شعار الجامعة" : "University Logo"}
+          alt={T.logoAlt}
           className="h-16 sm:h-18 md:h-20 lg:h-24 max-w-[80vw] mb-4 object-contain select-none"
           draggable="false"
         />
@@ -386,22 +493,28 @@ function AINeonFactChecker() {
           }} />
         </div>
         <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-center">
-          {isArabic ? "التحقق من الأخبار" : "Fact Checker"}
+          {T.title}
         </h1>
         <p className={`text-xs sm:text-sm md:text-base text-center max-w-[90vw] sm:max-w-xl md:max-w-2xl ${
           isDark ? 'text-white/70' : 'text-slate-600'
         }`}>
-          {isArabic ? (
+          {language === 'arabic' ? (
             <>
-              أدخل الخبر، وسنبحث ونحلل ونرجّع لك <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>الحالة</span>،
-              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> التحليل</span>، و
-              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> المصادر</span>
+              أدخل الخبر، وسنبحث ونحلل ونرجّع لك <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.arabic.status}</span>،
+              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.arabic.analysis}</span>، و
+              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.arabic.sources}</span>
+            </>
+          ) : language === 'french' ? (
+            <>
+              Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.french.status.toLowerCase()}</span>,
+              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.french.analysis.toLowerCase()}</span> et
+              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.french.sources.toLowerCase()}</span>
             </>
           ) : (
             <>
-              Enter your claim, and we'll search, analyze, and return the <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>status</span>,
-              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> analysis</span>, and
-              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> sources</span>
+              Enter your claim, and we'll search, analyze, and return the <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.english.status.toLowerCase()}</span>,
+              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.english.analysis.toLowerCase()}</span>, and
+              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.english.sources.toLowerCase()}</span>
             </>
           )}
         </p>
@@ -423,7 +536,7 @@ function AINeonFactChecker() {
             <label className={`text-sm ${
               isDark ? 'text-white/70' : 'text-slate-600'
             }`}>
-              {isArabic ? "اكتب عنوان الخبر المراد التحقق منه" : "Enter the news headline to fact-check"}
+              {T.inputLabel}
             </label>
             <textarea
               className={`min-h-[100px] sm:min-h-[120px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 transition-colors resize-none ${
@@ -431,7 +544,7 @@ function AINeonFactChecker() {
                   ? 'bg-[#0b1327] border border-white/20 focus:ring-indigo-400/60 shadow-[0_0_20px_rgba(99,102,241,.08)] text-white placeholder-white/60'
                   : 'bg-white border border-slate-300 focus:ring-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,.08)] text-slate-800 placeholder-slate-500'
               }`}
-              placeholder={isArabic ? "مثال: الرئيس الأمريكي أعلن عن قرار جديد..." : "Example: The US President announced a new decision..."}
+              placeholder={T.placeholder}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -440,7 +553,7 @@ function AINeonFactChecker() {
                   handleCheck();
                 }
               }}
-              aria-label={isArabic ? "مربع إدخال النص للتحقق من الخبر" : "Text input for fact-checking"}
+              aria-label={T.ariaInput}
               aria-describedby="input-help"
             />
             {/* Generation Options */}
@@ -452,7 +565,7 @@ function AINeonFactChecker() {
                   checked={generateNews}
                   onChange={(e) => setGenerateNews(e.target.checked)}
                   className="sr-only"
-                  aria-label={isArabic ? 'تفعيل صياغة خبر' : 'Toggle generate news article'}
+                  aria-label={T.toggleGenerateNewsAria}
                 />
                 <span
                   className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
@@ -468,7 +581,7 @@ function AINeonFactChecker() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-emerald-300' : 'text-emerald-600'}>
                     <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
                   </svg>
-                  <span>{isArabic ? 'صياغة خبر' : 'Generate News Article'}</span>
+                  <span>{T.generateNewsLabel}</span>
                 </span>
               </label>
 
@@ -479,7 +592,7 @@ function AINeonFactChecker() {
                   checked={generateTweet}
                   onChange={(e) => setGenerateTweet(e.target.checked)}
                   className="sr-only"
-                  aria-label={isArabic ? 'تفعيل صياغة تويتة' : 'Toggle generate tweet'}
+                  aria-label={T.toggleGenerateTweetAria}
                 />
                 <span
                   className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
@@ -495,7 +608,7 @@ function AINeonFactChecker() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-sky-300' : 'text-blue-600'}>
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                   </svg>
-                  <span>{isArabic ? 'صياغة تويتة' : 'Generate Tweet'}</span>
+                  <span>{T.generateTweetLabel}</span>
                 </span>
               </label>
             </div>
@@ -519,7 +632,7 @@ function AINeonFactChecker() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                aria-label={isArabic ? "زر التحقق من الخبر" : "Fact check button"}
+                aria-label={T.checkBtnAria}
                 tabIndex={0}
               >
                 {/* Animated background gradient */}
@@ -565,7 +678,7 @@ function AINeonFactChecker() {
                         animate={{ opacity: [0.7, 1, 0.7] }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        {isArabic ? "جاري التحقق…" : "Checking..."}
+                        {T.checking}
                       </motion.span>
                     </>
                   ) : (
@@ -576,7 +689,7 @@ function AINeonFactChecker() {
                       >
                         ✅
                       </motion.span>
-                      <span>{isArabic ? "تحقق الآن" : "Check Now"}</span>
+                      <span>{T.checkNow}</span>
                     </>
                   )}
                 </span>
@@ -599,10 +712,10 @@ function AINeonFactChecker() {
                   }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  aria-label={isArabic ? "نسخ نتيجة التحقق" : "Copy verification result"}
+                  aria-label={T.copyVerificationAria}
                   tabIndex={0}
                 >
-                  {isArabic ? "نسخ النتيجة" : "Copy Result"}
+                  {T.copyResult}
                 </motion.button>
               )}
             </div>
@@ -661,7 +774,7 @@ function AINeonFactChecker() {
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
                       <NeonDot color="rgba(16,185,129,1)" />
-                      <h3 className="text-2xl font-extrabold">{isArabic ? "الحالة" : "Status"}</h3>
+                      <h3 className="text-2xl font-extrabold">{T.status}</h3>
                     </div>
                     <Badge>{result.case}</Badge>
                   </div>
@@ -680,7 +793,7 @@ function AINeonFactChecker() {
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <NeonDot color="rgba(99,102,241,1)" />
-                    <h3 className="text-2xl font-extrabold">{isArabic ? "التحليل" : "Analysis"}</h3>
+                    <h3 className="text-2xl font-extrabold">{T.analysis}</h3>
                   </div>
                   <div className={`prose max-w-none leading-8 text-base ${
                     isDark ? 'prose-invert' : 'prose-slate'
@@ -702,7 +815,7 @@ function AINeonFactChecker() {
                 >
                   <div className="flex items-center gap-3 mb-5">
                     <NeonDot color="rgba(56,189,248,1)" />
-                    <h3 className="text-2xl font-extrabold">{isArabic ? "المصادر" : "Sources"}</h3>
+                    <h3 className="text-2xl font-extrabold">{T.sources}</h3>
                   </div>
 
                   {result.sources?.length ? (
@@ -725,7 +838,7 @@ function AINeonFactChecker() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 }}
                     >
-                      {isArabic ? "لا توجد مصادر متاحة." : "No sources available."}
+                      {T.noSources}
                     </motion.p>
                   )}
                 </motion.div>
@@ -745,14 +858,14 @@ function AINeonFactChecker() {
                     <div className="flex items-center justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <NeonDot color="rgba(34,197,94,1)" />
-                        <h3 className="text-2xl font-extrabold">{isArabic ? "خبر مصاغ" : "Generated News Article"}</h3>
+                        <h3 className="text-2xl font-extrabold">{T.generatedNews}</h3>
                       </div>
                       <motion.button
                         onClick={() => {
                           navigator.clipboard.writeText(result.news_article).then(() => {
                             const button = event.target;
                             const originalText = button.textContent;
-                            button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
+                            button.textContent = `${T.copied} ✓`;
                             button.style.background = isDark ? 'linear-gradient(135deg, #10b981, #059669, #047857)' : 'linear-gradient(135deg, #10b981, #059669, #047857)';
                             setTimeout(() => {
                               button.textContent = originalText;
@@ -771,7 +884,7 @@ function AINeonFactChecker() {
                           y: -2
                         }}
                         whileTap={{ scale: 0.95 }}
-                        aria-label={isArabic ? "نسخ الخبر المصاغ" : "Copy generated news article"}
+                        aria-label={T.copyGeneratedNewsAria}
                       >
                         {/* Animated background gradient */}
                         <div className={`absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
@@ -804,7 +917,7 @@ function AINeonFactChecker() {
                           >
                             <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
                           </motion.svg>
-                          <span>{isArabic ? "نسخ الخبر" : "Create Article"}</span>
+                          <span>{T.buttonCopyNewsText}</span>
                         </span>
                         
                         {/* Glow effect */}
@@ -869,14 +982,14 @@ function AINeonFactChecker() {
                     <div className="flex items-center justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <NeonDot color="rgba(59,130,246,1)" />
-                        <h3 className="text-2xl font-extrabold">{isArabic ? "تويتة مصاغة" : "Generated Tweet"}</h3>
+                        <h3 className="text-2xl font-extrabold">{T.tweetHeading}</h3>
                       </div>
                       <motion.button
                         onClick={() => {
                           navigator.clipboard.writeText(result.x_tweet).then(() => {
                             const button = event.target;
                             const originalText = button.textContent;
-                            button.textContent = isArabic ? "تم النسخ! ✓" : "Copied! ✓";
+                            button.textContent = `${T.copied} ✓`;
                             button.style.background = isDark ? 'linear-gradient(135deg, #1da1f2, #0d8bd9, #0570de)' : 'linear-gradient(135deg, #1da1f2, #0d8bd9, #0570de)';
                             setTimeout(() => {
                               button.textContent = originalText;
@@ -895,7 +1008,7 @@ function AINeonFactChecker() {
                           y: -2
                         }}
                         whileTap={{ scale: 0.95 }}
-                        aria-label={isArabic ? "نسخ التويته المصاغة" : "Copy generated tweet"}
+                        aria-label={T.copyGeneratedTweetAria}
                       >
                         {/* Animated background gradient */}
                         <div className={`absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
@@ -927,7 +1040,7 @@ function AINeonFactChecker() {
                           >
                             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                           </motion.svg>
-                          <span>{isArabic ? "نسخ التويته" : "X Tweet"}</span>
+                          <span>{T.buttonCopyTweetText}</span>
                         </span>
                         
                         {/* Glow effect */}
@@ -984,7 +1097,7 @@ function AINeonFactChecker() {
                         </div>
                         <div>
                           <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            {isArabic ? 'متحقق من الأخبار' : 'Fact Checker'}
+                            {T.tweetCardTitle}
                           </div>
                           <div className={`text-sm ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
                             @factchecker
@@ -1208,7 +1321,8 @@ function LinkChip({ href, label, big = false }) {
 
 function ManufacturingLoader() {
   const { isDark } = useTheme();
-  const { isArabic } = useLanguage();
+  const { language } = useLanguage();
+  const T = TRANSLATIONS[language] || TRANSLATIONS.english;
 
   return (
     <div
@@ -1220,11 +1334,7 @@ function ManufacturingLoader() {
     >
       <div className="flex items-center gap-3 mb-4">
         <NeonDot color="rgba(56,189,248,1)" />
-        <p className={isDark ? "text-white/80" : "text-slate-600"}>
-          {isArabic
-            ? "محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم."
-            : "AI engine is working… gathering evidence, matching facts, and forming the verdict."}
-        </p>
+        <p className={isDark ? "text-white/80" : "text-slate-600"}>{T.loaderLine}</p>
       </div>
       <div
         className={`relative h-12 overflow-hidden rounded-lg border ${

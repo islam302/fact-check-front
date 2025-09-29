@@ -11,37 +11,44 @@ export const useLanguage = () => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [isArabic, setIsArabic] = useState(() => {
+  const [language, setLanguage] = useState(() => {
     // Check localStorage first, then default to Arabic
     const saved = localStorage.getItem('language');
-    if (saved) {
-      return saved === 'arabic';
+    if (saved === 'arabic' || saved === 'english' || saved === 'french') {
+      return saved;
     }
-    return true; // Default to Arabic
+    return 'arabic'; // Default to Arabic
   });
+
+  const isArabic = language === 'arabic';
 
   useEffect(() => {
     // Apply language to document
-    if (isArabic) {
+    if (language === 'arabic') {
       document.documentElement.setAttribute('dir', 'rtl');
       document.documentElement.setAttribute('lang', 'ar');
+    } else if (language === 'french') {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'fr');
     } else {
       document.documentElement.setAttribute('dir', 'ltr');
       document.documentElement.setAttribute('lang', 'en');
     }
-    
+
     // Save to localStorage
-    localStorage.setItem('language', isArabic ? 'arabic' : 'english');
-  }, [isArabic]);
+    localStorage.setItem('language', language);
+  }, [language]);
 
   const toggleLanguage = () => {
-    setIsArabic(prev => !prev);
+    // Cycle through arabic -> english -> french -> arabic
+    setLanguage(prev => (prev === 'arabic' ? 'english' : prev === 'english' ? 'french' : 'arabic'));
   };
 
   const value = {
     isArabic,
     toggleLanguage,
-    language: isArabic ? 'arabic' : 'english'
+    language,
+    setLanguage,
   };
 
   return (
