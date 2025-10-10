@@ -8,7 +8,10 @@ import unaLogoDark from "./assets/unalogo-dark.png";
 import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
-const API_URL = "https://fact-check-api-32dx.onrender.com/fact_check/";
+const API_BASE_URL = "http://localhost:8000";  // Using localhost as in Postman
+const FACT_CHECK_URL = `${API_BASE_URL}/fact_check/`;  // Main endpoint from Postman
+const COMPOSE_NEWS_URL = `${API_BASE_URL}/fact_check/compose_news/`;
+const COMPOSE_TWEET_URL = `${API_BASE_URL}/fact_check/compose_tweet/`;
 
 // ======= i18n (AR / EN / FR) =======
 const TRANSLATIONS = {
@@ -18,10 +21,6 @@ const TRANSLATIONS = {
     inputLabel: "اكتب عنوان الخبر المراد التحقق منه",
     placeholder: "مثال: الرئيس الأمريكي أعلن عن قرار جديد...",
     ariaInput: "مربع إدخال النص للتحقق من الخبر",
-    toggleGenerateNewsAria: "تفعيل صياغة خبر",
-    generateNewsLabel: "صياغة خبر",
-    toggleGenerateTweetAria: "تفعيل صياغة تويتة",
-    generateTweetLabel: "صياغة تويتة",
     errorNoQuery: "اكتب الخبر أولًا.",
     errorFetch: "تعذر الحصول على النتيجة",
     errorUnexpected: "حدث خطأ غير متوقع.",
@@ -32,10 +31,10 @@ const TRANSLATIONS = {
     noSources: "لا توجد مصادر متاحة.",
     generatedNews: "خبر مصاغ",
     copyGeneratedNewsAria: "نسخ الخبر المصاغ",
-    copyGeneratedTweetAria: "نسخ التويته المصاغة",
+    copyGeneratedTweetAria: "نسخ التغريدة المصاغة",
     buttonCopyNewsText: "نسخ الخبر",
-    buttonCopyTweetText: "نسخ التويته",
-    tweetHeading: "تويتة مصاغة",
+    buttonCopyTweetText: "نسخ التغريدة",
+    tweetHeading: "تغريدة مصاغة",
     tweetCardTitle: "متحقق من الأخبار",
     copyVerificationAria: "نسخ نتيجة التحقق",
     copyResult: "نسخ النتيجة",
@@ -43,6 +42,10 @@ const TRANSLATIONS = {
     checkBtnAria: "زر التحقق من الخبر",
     checking: "جاري التحقق…",
     checkNow: "تحقق الآن",
+    composeNewsBtn: "صياغة خبر",
+    composeTweetBtn: "صياغة تغريدة",
+    composingNews: "جاري صياغة الخبر…",
+    composingTweet: "جاري صياغة التغريدة…",
     heroLine: null,
     loaderLine: "محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.",
   },
@@ -52,10 +55,6 @@ const TRANSLATIONS = {
     inputLabel: "Enter the news headline to fact-check",
     placeholder: "Example: The US President announced a new decision...",
     ariaInput: "Text input for fact-checking",
-    toggleGenerateNewsAria: "Toggle generate news article",
-    generateNewsLabel: "Generate News Article",
-    toggleGenerateTweetAria: "Toggle generate tweet",
-    generateTweetLabel: "Generate Tweet",
     errorNoQuery: "Please enter the news first.",
     errorFetch: "Failed to get result",
     errorUnexpected: "An unexpected error occurred.",
@@ -77,6 +76,10 @@ const TRANSLATIONS = {
     checkBtnAria: "Fact check button",
     checking: "Checking...",
     checkNow: "Check Now",
+    composeNewsBtn: "Compose News",
+    composeTweetBtn: "Compose Tweet",
+    composingNews: "Composing news…",
+    composingTweet: "Composing tweet…",
     heroLine: null,
     loaderLine: "AI engine is working… gathering evidence, matching facts, and forming the verdict.",
   },
@@ -86,10 +89,6 @@ const TRANSLATIONS = {
     inputLabel: "Saisissez le titre de la nouvelle à vérifier",
     placeholder: "Exemple : Le président américain a annoncé une nouvelle décision...",
     ariaInput: "Zone de texte pour la vérification des faits",
-    toggleGenerateNewsAria: "Activer la génération d’article",
-    generateNewsLabel: "Générer un article",
-    toggleGenerateTweetAria: "Activer la génération de tweet",
-    generateTweetLabel: "Générer un tweet",
     errorNoQuery: "Veuillez d’abord saisir la nouvelle.",
     errorFetch: "Échec de l’obtention du résultat",
     errorUnexpected: "Une erreur inattendue s’est produite.",
@@ -111,8 +110,12 @@ const TRANSLATIONS = {
     checkBtnAria: "Bouton de vérification",
     checking: "Vérification…",
     checkNow: "Vérifier maintenant",
+    composeNewsBtn: "Rédiger un article",
+    composeTweetBtn: "Rédiger un tweet",
+    composingNews: "Rédaction de l'article…",
+    composingTweet: "Rédaction du tweet…",
     heroLine: "Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le ",
-    loaderLine: "Le moteur d’IA travaille… collecte des preuves, recoupe les faits et établit le verdict.",
+    loaderLine: "Le moteur d'IA travaille… collecte des preuves, recoupe les faits et établit le verdict.",
   }
 };
 
@@ -251,8 +254,8 @@ function AINeonFactChecker() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [generateNews, setGenerateNews] = useState(false);
-  const [generateTweet, setGenerateTweet] = useState(false);
+  const [composingNews, setComposingNews] = useState(false);
+  const [composingTweet, setComposingTweet] = useState(false);
 
   async function handleCheck() {
     setErr("");
@@ -265,17 +268,45 @@ function AINeonFactChecker() {
 
     setLoading(true);
     try {
-      const res = await fetch(API_URL, {
+      console.log("🔍 Sending request to:", FACT_CHECK_URL);
+      console.log("📝 Request body:", { 
+        query: q
+      });
+      
+      const res = await fetch(FACT_CHECK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          query: q,
-          generate_news: generateNews,
-          generate_tweet: generateTweet
+          query: q
         }),
       });
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || T.errorFetch);
+
+      console.log("📡 Response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      console.log("📄 Response text:", text);
+      
+      if (!text.trim()) {
+        throw new Error("Server returned empty response");
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("✅ Parsed JSON data:", data);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("Response text:", text);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      if (!data?.ok) {
+        throw new Error(data?.error || T.errorFetch);
+      }
 
       setResult({
         case: data.case || "غير متوفر",
@@ -284,10 +315,136 @@ function AINeonFactChecker() {
         news_article: data.news_article || null,
         x_tweet: data.x_tweet || null,
       });
+      
     } catch (e) {
+      console.error("Error in handleCheck:", e);
       setErr(e.message || T.errorUnexpected);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleComposeNews() {
+    if (!result) return;
+    
+    setComposingNews(true);
+    setErr("");
+    try {
+      const requestBody = {
+        claim_text: query.trim(),
+        case: result.case,
+        talk: result.talk,
+        sources: result.sources,
+        lang: language === "arabic" ? "ar" : language === "french" ? "fr" : "en"
+      };
+      
+      console.log("📰 Composing news via:", COMPOSE_NEWS_URL);
+      console.log("📝 News request body:", requestBody);
+      
+      const res = await fetch(COMPOSE_NEWS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("📡 News response status:", res.status, res.statusText);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      console.log("📄 News response text:", text);
+      
+      if (!text.trim()) {
+        throw new Error("Server returned empty response");
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("✅ News parsed JSON data:", data);
+      } catch (parseError) {
+        console.error("JSON Parse Error in compose news:", parseError);
+        console.error("Response text:", text);
+        throw new Error("Invalid JSON response from server");
+      }
+      
+      if (data?.ok && data?.news_article) {
+        setResult(prev => ({
+          ...prev,
+          news_article: data.news_article
+        }));
+      } else {
+        throw new Error(data?.error || T.errorFetch);
+      }
+    } catch (e) {
+      console.error("Error in handleComposeNews:", e);
+      setErr(e.message || T.errorUnexpected);
+    } finally {
+      setComposingNews(false);
+    }
+  }
+
+  async function handleComposeTweet() {
+    if (!result) return;
+    
+    setComposingTweet(true);
+    setErr("");
+    try {
+      const requestBody = {
+        claim_text: query.trim(),
+        case: result.case,
+        talk: result.talk,
+        sources: result.sources,
+        lang: language === "arabic" ? "ar" : language === "french" ? "fr" : "en"
+      };
+      
+      console.log("🐦 Composing tweet via:", COMPOSE_TWEET_URL);
+      console.log("📝 Tweet request body:", requestBody);
+      
+      const res = await fetch(COMPOSE_TWEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("📡 Tweet response status:", res.status, res.statusText);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      console.log("📄 Tweet response text:", text);
+      
+      if (!text.trim()) {
+        throw new Error("Server returned empty response");
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("✅ Tweet parsed JSON data:", data);
+      } catch (parseError) {
+        console.error("JSON Parse Error in compose tweet:", parseError);
+        console.error("Response text:", text);
+        throw new Error("Invalid JSON response from server");
+      }
+      
+      if (data?.ok && data?.x_tweet) {
+        setResult(prev => ({
+          ...prev,
+          x_tweet: data.x_tweet
+        }));
+      } else {
+        throw new Error(data?.error || T.errorFetch);
+      }
+    } catch (e) {
+      console.error("Error in handleComposeTweet:", e);
+      setErr(e.message || T.errorUnexpected);
+    } finally {
+      setComposingTweet(false);
     }
   }
 
@@ -556,62 +713,6 @@ function AINeonFactChecker() {
               aria-label={T.ariaInput}
               aria-describedby="input-help"
             />
-            {/* Generation Options */}
-            <div className="flex flex-wrap gap-3 mb-3">
-              {/* News Article chip */}
-              <label className="cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={generateNews}
-                  onChange={(e) => setGenerateNews(e.target.checked)}
-                  className="sr-only"
-                  aria-label={T.toggleGenerateNewsAria}
-                />
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
-                    isDark 
-                      ? (generateNews
-                          ? 'bg-emerald-600/20 border-emerald-400/40 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,.25)]'
-                          : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10')
-                      : (generateNews
-                          ? 'bg-emerald-100 border-emerald-300 text-emerald-700 shadow-[0_0_14px_rgba(16,185,129,.15)]'
-                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
-                  }`}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-emerald-300' : 'text-emerald-600'}>
-                    <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
-                  </svg>
-                  <span>{T.generateNewsLabel}</span>
-                </span>
-              </label>
-
-              {/* X/Tweet chip */}
-              <label className="cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={generateTweet}
-                  onChange={(e) => setGenerateTweet(e.target.checked)}
-                  className="sr-only"
-                  aria-label={T.toggleGenerateTweetAria}
-                />
-                <span
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
-                    isDark 
-                      ? (generateTweet
-                          ? 'bg-blue-600/20 border-sky-400/40 text-sky-200 shadow-[0_0_18px_rgba(59,130,246,.25)]'
-                          : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10')
-                      : (generateTweet
-                          ? 'bg-blue-100 border-blue-300 text-blue-700 shadow-[0_0_14px_rgba(59,130,246,.15)]'
-                          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
-                  }`}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={isDark ? 'text-sky-300' : 'text-blue-600'}>
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                  <span>{T.generateTweetLabel}</span>
-                </span>
-              </label>
-            </div>
 
             <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
               <motion.button
@@ -840,6 +941,82 @@ function AINeonFactChecker() {
                     >
                       {T.noSources}
                     </motion.p>
+                  )}
+                </motion.div>
+
+                {/* Compose Actions */}
+                <motion.div 
+                  className="flex gap-3 flex-wrap justify-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  {!result.news_article && (
+                    <motion.button
+                      onClick={handleComposeNews}
+                      disabled={composingNews}
+                      className={`relative overflow-hidden group px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-400/50 disabled:opacity-60 disabled:cursor-not-allowed ${
+                        isDark 
+                          ? 'bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 text-white shadow-[0_8px_32px_rgba(16,185,129,.4)] hover:shadow-[0_12px_40px_rgba(16,185,129,.6)]'
+                          : 'bg-gradient-to-r from-emerald-500 via-green-400 to-teal-400 text-white shadow-[0_8px_32px_rgba(16,185,129,.3)] hover:shadow-[0_12px_40px_rgba(16,185,129,.5)]'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        {composingNews ? (
+                          <>
+                            <motion.div
+                              className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <span>{T.composingNews}</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M19 3H8a2 2 0 0 0-2 2v2H5a2 2 0 0 0-2 2v8a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3V5a2 2 0 0 0-2-2Zm-3 4h3v2h-3V7Zm-8 0h6v2H8V7Zm0 4h11v2H8v-2Zm0 4h11v2H8v-2ZM5 9h1v8a1 1 0 0 1-1-1V9Z"/>
+                            </svg>
+                            <span>{T.composeNewsBtn}</span>
+                          </>
+                        )}
+                      </span>
+                    </motion.button>
+                  )}
+                  
+                  {!result.x_tweet && (
+                    <motion.button
+                      onClick={handleComposeTweet}
+                      disabled={composingTweet}
+                      className={`relative overflow-hidden group px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400/50 disabled:opacity-60 disabled:cursor-not-allowed ${
+                        isDark 
+                          ? 'bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-500 text-white shadow-[0_8px_32px_rgba(29,161,242,.4)] hover:shadow-[0_12px_40px_rgba(29,161,242,.6)]'
+                          : 'bg-gradient-to-r from-blue-500 via-sky-400 to-cyan-400 text-white shadow-[0_8px_32px_rgba(29,161,242,.3)] hover:shadow-[0_12px_40px_rgba(29,161,242,.5)]'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        {composingTweet ? (
+                          <>
+                            <motion.div
+                              className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <span>{T.composingTweet}</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                            <span>{T.composeTweetBtn}</span>
+                          </>
+                        )}
+                      </span>
+                    </motion.button>
                   )}
                 </motion.div>
 
