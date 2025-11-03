@@ -282,10 +282,6 @@ function AINeonFactChecker() {
       });
 
       console.log("📡 Response status:", res.status, res.statusText);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
 
       const text = await res.text();
       console.log("📄 Response text:", text);
@@ -301,11 +297,17 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error:", parseError);
         console.error("Response text:", text);
+        // If we can't parse JSON, throw the raw response or HTTP error
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
+        }
         throw new Error("Invalid JSON response from server");
       }
 
-      if (!data?.ok) {
-        throw new Error(data?.error || T.errorFetch);
+      // Check for error response from server (even if HTTP status is 200)
+      if (!data?.ok || !res.ok) {
+        // Show the actual error message from the response
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}: ${res.statusText}`);
       }
 
       setResult({
@@ -349,10 +351,6 @@ function AINeonFactChecker() {
 
       console.log("📡 News response status:", res.status, res.statusText);
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
       const text = await res.text();
       console.log("📄 News response text:", text);
       
@@ -367,6 +365,10 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error in compose news:", parseError);
         console.error("Response text:", text);
+        // If we can't parse JSON, throw the raw response or HTTP error
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
+        }
         throw new Error("Invalid JSON response from server");
       }
       
@@ -376,7 +378,8 @@ function AINeonFactChecker() {
           news_article: data.news_article
         }));
       } else {
-        throw new Error(data?.error || T.errorFetch);
+        // Show the actual error message from the response
+        throw new Error(data?.error || data?.message || (!res.ok ? `HTTP ${res.status}: ${res.statusText}` : T.errorFetch));
       }
     } catch (e) {
       console.error("Error in handleComposeNews:", e);
@@ -411,10 +414,6 @@ function AINeonFactChecker() {
 
       console.log("📡 Tweet response status:", res.status, res.statusText);
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
       const text = await res.text();
       console.log("📄 Tweet response text:", text);
       
@@ -429,6 +428,10 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error in compose tweet:", parseError);
         console.error("Response text:", text);
+        // If we can't parse JSON, throw the raw response or HTTP error
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
+        }
         throw new Error("Invalid JSON response from server");
       }
       
@@ -438,7 +441,8 @@ function AINeonFactChecker() {
           x_tweet: data.x_tweet
         }));
       } else {
-        throw new Error(data?.error || T.errorFetch);
+        // Show the actual error message from the response
+        throw new Error(data?.error || data?.message || (!res.ok ? `HTTP ${res.status}: ${res.statusText}` : T.errorFetch));
       }
     } catch (e) {
       console.error("Error in handleComposeTweet:", e);
@@ -826,18 +830,148 @@ function AINeonFactChecker() {
           <AnimatePresence>
             {err && (
               <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className={`mt-4 rounded-xl px-4 py-3 ${
+                initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className={`mt-4 rounded-2xl px-5 py-4 relative overflow-hidden ${
                   isDark 
-                    ? 'text-red-200 bg-red-900/30 border border-red-800/50'
-                    : 'text-red-700 bg-red-100 border border-red-300'
+                    ? 'text-red-200 bg-gradient-to-br from-red-900/50 via-red-800/40 to-red-900/50 border-2 border-red-700/60 shadow-[0_0_30px_rgba(220,38,38,.4),inset_0_0_20px_rgba(220,38,38,.1)]'
+                    : 'text-red-800 bg-gradient-to-br from-red-100 via-red-50 to-red-100 border-2 border-red-400 shadow-[0_0_30px_rgba(239,68,68,.3),inset_0_0_20px_rgba(254,242,242,.5)]'
                 }`}
                 role="alert"
                 aria-live="polite"
               >
-                {err}
+                {/* Animated background pulse */}
+                <motion.div
+                  className={`absolute inset-0 rounded-2xl ${
+                    isDark 
+                      ? 'bg-gradient-to-r from-red-600/20 via-red-500/30 to-red-600/20'
+                      : 'bg-gradient-to-r from-red-400/30 via-red-300/40 to-red-400/30'
+                  }`}
+                  animate={{
+                    opacity: [0.3, 0.6, 0.3],
+                    scale: [1, 1.02, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                
+                {/* Shimmer effect */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent ${
+                  isDark ? '' : ''
+                }`} style={{
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                  animation: 'shimmer 3s infinite'
+                }} />
+                
+                {/* Glowing border animation */}
+                <motion.div
+                  className={`absolute inset-0 rounded-2xl ${
+                    isDark 
+                      ? 'border-2 border-red-500/40'
+                      : 'border-2 border-red-500/60'
+                  }`}
+                  animate={{
+                    boxShadow: isDark
+                      ? [
+                          '0 0 20px rgba(220,38,38,.4)',
+                          '0 0 40px rgba(220,38,38,.6)',
+                          '0 0 20px rgba(220,38,38,.4)'
+                        ]
+                      : [
+                          '0 0 20px rgba(239,68,68,.3)',
+                          '0 0 40px rgba(239,68,68,.5)',
+                          '0 0 20px rgba(239,68,68,.3)'
+                        ]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  style={{ pointerEvents: 'none' }}
+                />
+                
+                {/* Content */}
+                <div className="relative z-10 flex items-start gap-3">
+                  {/* Icon */}
+                  <motion.div
+                    animate={{
+                      rotate: [0, -10, 10, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatDelay: 1,
+                      ease: "easeInOut"
+                    }}
+                    className={`text-2xl flex-shrink-0 ${
+                      isDark ? 'text-red-400' : 'text-red-600'
+                    }`}
+                  >
+                    ⚠️
+                  </motion.div>
+                  
+                  {/* Error message */}
+                  <div className="flex-1">
+                    <motion.p
+                      className={`text-base sm:text-lg font-semibold leading-relaxed ${
+                        isDark ? 'text-red-200' : 'text-red-800'
+                      }`}
+                      animate={{
+                        opacity: [0.9, 1, 0.9]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      {err}
+                    </motion.p>
+                  </div>
+                </div>
+                
+                {/* Floating particles */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                  {[...Array(5)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className={`absolute w-1.5 h-1.5 rounded-full ${
+                        isDark ? 'bg-red-400/60' : 'bg-red-500/60'
+                      }`}
+                      style={{
+                        left: `${20 + i * 15}%`,
+                        top: `${10 + i * 20}%`,
+                      }}
+                      animate={{
+                        y: [0, -20, 0],
+                        x: [0, Math.sin(i) * 10, 0],
+                        opacity: [0, 0.8, 0],
+                        scale: [0.5, 1, 0.5]
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        delay: i * 0.3,
+                        ease: "easeInOut"
+                      }}
+                    />
+                  ))}
+                </div>
+                
+                {/* CSS for shimmer */}
+                <style>{`
+                  @keyframes shimmer {
+                    0% { transform: translateX(-100%) skewX(-15deg); }
+                    100% { transform: translateX(200%) skewX(-15deg); }
+                  }
+                `}</style>
               </motion.div>
             )}
           </AnimatePresence>
