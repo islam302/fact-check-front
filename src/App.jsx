@@ -8,10 +8,11 @@ import unaLogoDark from "./assets/unalogo-dark.png";
 import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
-const API_BASE_URL = "https://fact-check-api-32dx.onrender.com";  // Using localhost as in Postman
+const API_BASE_URL = "http://127.0.0.1:8000";  // Using localhost as in Postman
 const FACT_CHECK_URL = `${API_BASE_URL}/fact_check/`;  // Main endpoint from Postman
 const COMPOSE_NEWS_URL = `${API_BASE_URL}/fact_check/compose_news/`;
 const COMPOSE_TWEET_URL = `${API_BASE_URL}/fact_check/compose_tweet/`;
+const IMAGE_CHECK_URL = `${API_BASE_URL}/image_check/`;
 
 // ======= i18n (AR / EN / FR) =======
 const TRANSLATIONS = {
@@ -48,6 +49,20 @@ const TRANSLATIONS = {
     composingTweet: "جاري صياغة التغريدة…",
     heroLine: null,
     loaderLine: "محرك الذكاء الاصطناعي يعمل… تجميع الأدلة، مطابقة الحقائق، وتكوين الحكم.",
+    tabFactChecker: "التحقق من الأخبار",
+    tabImageChecker: "التحقق من الصور",
+    imageCheckerTitle: "التحقق من الصور",
+    imageInputLabel: "قم برفع الصورة المراد التحقق منها",
+    imageInputPlaceholder: "اسحب الصورة هنا أو انقر للاختيار",
+    checkImageBtn: "تحقق من الصورة",
+    checkingImage: "جاري التحقق من الصورة…",
+    imageLoaderLine: "محرك التحقق من الصور يعمل… تحليل الصورة، فحص التعديلات، وتحديد الأصالة.",
+    imageReal: "صورة حقيقية",
+    imageFake: "صورة مزيفة",
+    aiGenerated: "مولدة بالذكاء الاصطناعي",
+    photoshopped: "معدلة",
+    original: "أصلية",
+    analysis: "التحليل",
   },
   english: {
     logoAlt: "University Logo",
@@ -82,6 +97,20 @@ const TRANSLATIONS = {
     composingTweet: "Composing tweet…",
     heroLine: null,
     loaderLine: "AI engine is working… gathering evidence, matching facts, and forming the verdict.",
+    tabFactChecker: "Fact Checker",
+    tabImageChecker: "Image Checker",
+    imageCheckerTitle: "Image Checker",
+    imageInputLabel: "Upload an image to verify",
+    imageInputPlaceholder: "Drag image here or click to select",
+    checkImageBtn: "Check Image",
+    checkingImage: "Checking image…",
+    imageLoaderLine: "Image verification engine is working… analyzing image, checking for edits, and determining authenticity.",
+    imageReal: "Real Image",
+    imageFake: "Fake Image",
+    aiGenerated: "AI Generated",
+    photoshopped: "Photoshopped",
+    original: "Original",
+    analysis: "Analysis",
   },
   french: {
     logoAlt: "Logo de l’université",
@@ -116,6 +145,20 @@ const TRANSLATIONS = {
     composingTweet: "Rédaction du tweet…",
     heroLine: "Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le ",
     loaderLine: "Le moteur d'IA travaille… collecte des preuves, recoupe les faits et établit le verdict.",
+    tabFactChecker: "Vérificateur de faits",
+    tabImageChecker: "Vérificateur d'images",
+    imageCheckerTitle: "Vérificateur d'images",
+    imageInputLabel: "Téléchargez une image à vérifier",
+    imageInputPlaceholder: "Glissez l'image ici ou cliquez pour sélectionner",
+    checkImageBtn: "Vérifier l'image",
+    checkingImage: "Vérification de l'image…",
+    imageLoaderLine: "Le moteur de vérification d'images fonctionne… analyse de l'image, vérification des modifications et détermination de l'authenticité.",
+    imageReal: "Image réelle",
+    imageFake: "Image fausse",
+    aiGenerated: "Générée par IA",
+    photoshopped: "Photoshopée",
+    original: "Originale",
+    analysis: "Analyse",
   }
 };
 
@@ -250,12 +293,20 @@ function AINeonFactChecker() {
   const { isDark } = useTheme();
   const { isArabic, language } = useLanguage();
   const T = TRANSLATIONS[language] || TRANSLATIONS.english;
+  const [activeTab, setActiveTab] = useState("fact-checker"); // "fact-checker" or "image-checker"
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [composingNews, setComposingNews] = useState(false);
   const [composingTweet, setComposingTweet] = useState(false);
+  
+  // Image checker state
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageResult, setImageResult] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageErr, setImageErr] = useState("");
 
   async function handleCheck() {
     setErr("");
@@ -282,6 +333,10 @@ function AINeonFactChecker() {
       });
 
       console.log("📡 Response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
 
       const text = await res.text();
       console.log("📄 Response text:", text);
@@ -297,17 +352,11 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error:", parseError);
         console.error("Response text:", text);
-        // If we can't parse JSON, throw the raw response or HTTP error
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
-        }
         throw new Error("Invalid JSON response from server");
       }
 
-      // Check for error response from server (even if HTTP status is 200)
-      if (!data?.ok || !res.ok) {
-        // Show the actual error message from the response
-        throw new Error(data?.error || data?.message || `HTTP ${res.status}: ${res.statusText}`);
+      if (!data?.ok) {
+        throw new Error(data?.error || T.errorFetch);
       }
 
       setResult({
@@ -351,6 +400,10 @@ function AINeonFactChecker() {
 
       console.log("📡 News response status:", res.status, res.statusText);
 
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
       const text = await res.text();
       console.log("📄 News response text:", text);
       
@@ -365,10 +418,6 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error in compose news:", parseError);
         console.error("Response text:", text);
-        // If we can't parse JSON, throw the raw response or HTTP error
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
-        }
         throw new Error("Invalid JSON response from server");
       }
       
@@ -378,8 +427,7 @@ function AINeonFactChecker() {
           news_article: data.news_article
         }));
       } else {
-        // Show the actual error message from the response
-        throw new Error(data?.error || data?.message || (!res.ok ? `HTTP ${res.status}: ${res.statusText}` : T.errorFetch));
+        throw new Error(data?.error || T.errorFetch);
       }
     } catch (e) {
       console.error("Error in handleComposeNews:", e);
@@ -414,6 +462,10 @@ function AINeonFactChecker() {
 
       console.log("📡 Tweet response status:", res.status, res.statusText);
 
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
       const text = await res.text();
       console.log("📄 Tweet response text:", text);
       
@@ -428,10 +480,6 @@ function AINeonFactChecker() {
       } catch (parseError) {
         console.error("JSON Parse Error in compose tweet:", parseError);
         console.error("Response text:", text);
-        // If we can't parse JSON, throw the raw response or HTTP error
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}\n${text}`);
-        }
         throw new Error("Invalid JSON response from server");
       }
       
@@ -441,8 +489,7 @@ function AINeonFactChecker() {
           x_tweet: data.x_tweet
         }));
       } else {
-        // Show the actual error message from the response
-        throw new Error(data?.error || data?.message || (!res.ok ? `HTTP ${res.status}: ${res.statusText}` : T.errorFetch));
+        throw new Error(data?.error || T.errorFetch);
       }
     } catch (e) {
       console.error("Error in handleComposeTweet:", e);
@@ -487,6 +534,111 @@ function AINeonFactChecker() {
   }
 
   const renderedTalk = useMemo(() => renderTalkSmart(result?.talk || ""), [result?.talk]);
+
+  // Image checker handlers
+  function handleImageSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setImageErr(T.errorUnexpected?.replace('error', 'Please select a valid image file') || "Please select a valid image file");
+      return;
+    }
+    
+    setSelectedImage(file);
+    setImageErr("");
+    setImageResult(null);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleImageDrop(e) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    
+    setSelectedImage(file);
+    setImageErr("");
+    setImageResult(null);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  async function handleImageCheck() {
+    if (!selectedImage) {
+      setImageErr(T.errorNoQuery?.replace('news', 'image') || "Please select an image first.");
+      return;
+    }
+
+    setImageErr("");
+    setImageResult(null);
+    setImageLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+
+      console.log("🖼️ Sending image to:", IMAGE_CHECK_URL);
+
+      const res = await fetch(IMAGE_CHECK_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      console.log("📡 Image response status:", res.status, res.statusText);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const text = await res.text();
+      console.log("📄 Image response text:", text);
+
+      if (!text.trim()) {
+        throw new Error("Server returned empty response");
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("✅ Parsed image JSON data:", data);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("Response text:", text);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      if (!data?.ok) {
+        throw new Error(data?.error || T.errorFetch);
+      }
+
+      setImageResult({
+        is_ai_generated: data.is_ai_generated || false,
+        is_photoshopped: data.is_photoshopped || false,
+        is_fake: data.is_fake || false,
+        message: data.message || "",
+      });
+
+    } catch (e) {
+      console.error("Error in handleImageCheck:", e);
+      setImageErr(e.message || T.errorUnexpected);
+    } finally {
+      setImageLoading(false);
+    }
+  }
 
   return (
     <div dir={isArabic ? 'rtl' : 'ltr'} className={`min-h-screen relative overflow-hidden transition-colors duration-500 px-3 sm:px-0 ${
@@ -654,31 +806,105 @@ function AINeonFactChecker() {
           }} />
         </div>
         <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-center">
-          {T.title}
+          {activeTab === "fact-checker" ? T.title : T.imageCheckerTitle}
         </h1>
         <p className={`text-xs sm:text-sm md:text-base text-center max-w-[90vw] sm:max-w-xl md:max-w-2xl ${
           isDark ? 'text-white/70' : 'text-slate-600'
         }`}>
-          {language === 'arabic' ? (
-            <>
-              أدخل الخبر، وسنبحث ونحلل ونرجّع لك <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.arabic.status}</span>،
-              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.arabic.analysis}</span>، و
-              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.arabic.sources}</span>
-            </>
-          ) : language === 'french' ? (
-            <>
-              Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.french.status.toLowerCase()}</span>,
-              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.french.analysis.toLowerCase()}</span> et
-              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.french.sources.toLowerCase()}</span>
-            </>
+          {activeTab === "fact-checker" ? (
+            language === 'arabic' ? (
+              <>
+                أدخل الخبر، وسنبحث ونحلل ونرجّع لك <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.arabic.status}</span>،
+                <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.arabic.analysis}</span>، و
+                <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.arabic.sources}</span>
+              </>
+            ) : language === 'french' ? (
+              <>
+                Saisissez votre information, nous allons rechercher, analyser et vous renvoyer le <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.french.status.toLowerCase()}</span>,
+                <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.french.analysis.toLowerCase()}</span> et
+                <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.french.sources.toLowerCase()}</span>
+              </>
+            ) : (
+              <>
+                Enter your claim, and we'll search, analyze, and return the <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.english.status.toLowerCase()}</span>,
+                <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.english.analysis.toLowerCase()}</span>, and
+                <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.english.sources.toLowerCase()}</span>
+              </>
+            )
           ) : (
-            <>
-              Enter your claim, and we'll search, analyze, and return the <span className={isDark ? 'text-teal-300' : 'text-emerald-600'}>{TRANSLATIONS.english.status.toLowerCase()}</span>,
-              <span className={isDark ? 'text-indigo-300' : 'text-blue-600'}> {TRANSLATIONS.english.analysis.toLowerCase()}</span>, and
-              <span className={isDark ? 'text-fuchsia-300' : 'text-purple-600'}> {TRANSLATIONS.english.sources.toLowerCase()}</span>
-            </>
+            <span className={isDark ? 'text-white/70' : 'text-slate-600'}>
+              {T.imageLoaderLine?.replace('working… analyzing', 'will analyze') || "Upload an image to verify its authenticity"}
+            </span>
           )}
         </p>
+      </motion.div>
+
+      {/* Tab Switcher */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative z-10 mx-auto mt-4 w-full max-w-3xl"
+      >
+        <div className={`inline-flex rounded-2xl p-1 backdrop-blur-xl ${
+          isDark
+            ? 'bg-[#0a0f1c]/70 border border-white/10 shadow-[0_0_20px_rgba(99,102,241,.2)]'
+            : 'bg-white/80 border border-slate-200 shadow-[0_0_20px_rgba(59,130,246,.1)]'
+        }`}>
+          <motion.button
+            onClick={() => setActiveTab("fact-checker")}
+            className={`relative px-6 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all ${
+              activeTab === "fact-checker"
+                ? isDark
+                  ? 'text-white'
+                  : 'text-slate-900'
+                : isDark
+                  ? 'text-white/60 hover:text-white/80'
+                  : 'text-slate-600 hover:text-slate-800'
+            }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {activeTab === "fact-checker" && (
+              <motion.div
+                layoutId="activeTab"
+                className={`absolute inset-0 rounded-xl ${
+                  isDark
+                    ? 'bg-gradient-to-r from-indigo-500/50 via-purple-500/50 to-pink-500/50'
+                    : 'bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40'
+                }`}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">{T.tabFactChecker}</span>
+          </motion.button>
+          <motion.button
+            onClick={() => setActiveTab("image-checker")}
+            className={`relative px-6 py-3 rounded-xl font-semibold text-sm sm:text-base transition-all ${
+              activeTab === "image-checker"
+                ? isDark
+                  ? 'text-white'
+                  : 'text-slate-900'
+                : isDark
+                  ? 'text-white/60 hover:text-white/80'
+                  : 'text-slate-600 hover:text-slate-800'
+            }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {activeTab === "image-checker" && (
+              <motion.div
+                layoutId="activeTab"
+                className={`absolute inset-0 rounded-xl ${
+                  isDark
+                    ? 'bg-gradient-to-r from-indigo-500/50 via-purple-500/50 to-pink-500/50'
+                    : 'bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40'
+                }`}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">{T.tabImageChecker}</span>
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Main card */}
@@ -692,7 +918,9 @@ function AINeonFactChecker() {
             ? 'bg-[#0a0f1c]/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,.06)]'
             : 'bg-white/80 shadow-[inset_0_0_0_1px_rgba(0,0,0,.06)]'
         }`}>
-          {/* Input */}
+          {activeTab === "fact-checker" ? (
+            <>
+          {/* Fact Checker Input */}
           <div className="flex flex-col gap-3">
             <label className={`text-sm ${
               isDark ? 'text-white/70' : 'text-slate-600'
@@ -1426,6 +1654,227 @@ function AINeonFactChecker() {
               </motion.div>
             )}
           </AnimatePresence>
+            </>
+          ) : (
+            <>
+          {/* Image Checker */}
+          <div className="flex flex-col gap-4">
+            {/* Image Upload Area */}
+            <div>
+              <label className={`text-sm mb-2 block ${
+                isDark ? 'text-white/70' : 'text-slate-600'
+              }`}>
+                {T.imageInputLabel}
+              </label>
+              <div
+                onDrop={handleImageDrop}
+                onDragOver={handleDragOver}
+                className={`relative border-2 border-dashed rounded-xl p-8 transition-all ${
+                  isDark
+                    ? 'border-white/20 bg-[#0b1327]/50 hover:border-indigo-400/60 hover:bg-[#0b1327]/70'
+                    : 'border-slate-300 bg-slate-50 hover:border-blue-400/60 hover:bg-slate-100'
+                } ${imagePreview ? 'border-solid' : ''}`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer block"
+                >
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-w-full max-h-64 mx-auto rounded-lg shadow-lg"
+                      />
+                      <motion.button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedImage(null);
+                          setImagePreview(null);
+                          setImageResult(null);
+                          document.getElementById('image-upload').value = '';
+                        }}
+                        className={`absolute top-2 right-2 p-2 rounded-full ${
+                          isDark
+                            ? 'bg-red-600/80 hover:bg-red-600 text-white'
+                            : 'bg-red-500 hover:bg-red-600 text-white'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        ✕
+                      </motion.button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <motion.div
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="text-5xl mb-4"
+                      >
+                        📷
+                      </motion.div>
+                      <p className={`text-lg font-semibold mb-2 ${
+                        isDark ? 'text-white' : 'text-slate-800'
+                      }`}>
+                        {T.imageInputPlaceholder}
+                      </p>
+                      <p className={`text-sm ${
+                        isDark ? 'text-white/60' : 'text-slate-500'
+                      }`}>
+                        Supports: JPG, PNG, GIF, WebP
+                      </p>
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            {/* Check Button */}
+            <motion.button
+              onClick={handleImageCheck}
+              disabled={imageLoading || !selectedImage}
+              className={`relative px-6 py-4 rounded-2xl font-semibold text-base overflow-hidden transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed group focus:outline-none focus:ring-4 focus:ring-indigo-400/50 ${
+                isDark 
+                  ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(99,102,241,.4)]'
+                  : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-[0_20px_40px_rgba(59,130,246,.4)]'
+              }`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {imageLoading ? (
+                  <>
+                    <motion.div
+                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    <span>{T.checkingImage}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔍</span>
+                    <span>{T.checkImageBtn}</span>
+                  </>
+                )}
+              </span>
+            </motion.button>
+
+            {/* Image Error */}
+            <AnimatePresence>
+              {imageErr && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  className={`rounded-2xl px-5 py-4 relative overflow-hidden ${
+                    isDark 
+                      ? 'text-red-200 bg-gradient-to-br from-red-900/50 via-red-800/40 to-red-900/50 border-2 border-red-700/60 shadow-[0_0_30px_rgba(220,38,38,.4)]'
+                      : 'text-red-800 bg-gradient-to-br from-red-100 via-red-50 to-red-100 border-2 border-red-400 shadow-[0_0_30px_rgba(239,68,68,.3)]'
+                  }`}
+                  role="alert"
+                >
+                  <div className="relative z-10 flex items-start gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <p className="flex-1 font-semibold">{imageErr}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Image Loader */}
+            <AnimatePresence>
+              {imageLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <ImageCheckLoader />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Image Result */}
+            <AnimatePresence>
+              {imageResult && !imageLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid gap-4"
+                >
+                  {/* Status Card */}
+                  <motion.div
+                    className={`rounded-2xl p-6 ${
+                      imageResult.is_fake
+                        ? isDark
+                          ? 'bg-gradient-to-br from-red-600/90 to-red-500/80 shadow-[0_15px_50px_rgba(239,68,68,.4)]'
+                          : 'bg-gradient-to-br from-red-500/90 to-red-400/80 shadow-[0_15px_50px_rgba(239,68,68,.3)]'
+                        : isDark
+                          ? 'bg-gradient-to-br from-emerald-600/90 to-teal-500/80 shadow-[0_15px_50px_rgba(16,185,129,.4)]'
+                          : 'bg-gradient-to-br from-emerald-500/90 to-teal-400/80 shadow-[0_15px_50px_rgba(16,185,129,.3)]'
+                    }`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <NeonDot color={imageResult.is_fake ? "rgba(239,68,68,1)" : "rgba(16,185,129,1)"} />
+                        <h3 className="text-2xl font-extrabold text-white">
+                          {imageResult.is_fake ? T.imageFake : T.imageReal}
+                        </h3>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {imageResult.is_ai_generated ? (
+                          <Badge>{T.aiGenerated}</Badge>
+                        ) : !imageResult.is_photoshopped && (
+                          <Badge>{T.original}</Badge>
+                        )}
+                        {imageResult.is_photoshopped && (
+                          <Badge>{T.photoshopped}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Analysis */}
+                  <motion.div
+                    className={`rounded-2xl p-6 ${
+                      isDark
+                        ? 'bg-white/8 border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,.2)]'
+                        : 'bg-white/70 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,.1)]'
+                    }`}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <NeonDot color="rgba(99,102,241,1)" />
+                      <h3 className="text-2xl font-extrabold">{T.analysis}</h3>
+                    </div>
+                    <div className={`prose max-w-none leading-8 text-base whitespace-pre-line ${
+                      isDark ? 'prose-invert' : 'prose-slate'
+                    }`}>
+                      {imageResult.message}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1646,6 +2095,42 @@ function ManufacturingLoader() {
       <div className="flex items-center gap-3 mb-4">
         <NeonDot color="rgba(56,189,248,1)" />
         <p className={isDark ? "text-white/80" : "text-slate-600"}>{T.loaderLine}</p>
+      </div>
+      <div
+        className={`relative h-12 overflow-hidden rounded-lg border ${
+          isDark
+            ? "bg-white/[.03] border-white/10"
+            : "bg-slate-100 border-slate-200"
+        }`}
+      >
+        <div className="absolute inset-0 flex items-center">
+          <Conveyor />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+        <CodeBar />
+        <CodeBar delay="0.35s" />
+      </div>
+    </div>
+  );
+}
+
+function ImageCheckLoader() {
+  const { isDark } = useTheme();
+  const { language } = useLanguage();
+  const T = TRANSLATIONS[language] || TRANSLATIONS.english;
+
+  return (
+    <div
+      className={`rounded-2xl p-5 overflow-hidden ${
+        isDark
+          ? "bg-[#0b1327]/50 border border-white/10"
+          : "bg-white/60 border border-slate-200"
+      }`}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <NeonDot color="rgba(56,189,248,1)" />
+        <p className={isDark ? "text-white/80" : "text-slate-600"}>{T.imageLoaderLine}</p>
       </div>
       <div
         className={`relative h-12 overflow-hidden rounded-lg border ${
