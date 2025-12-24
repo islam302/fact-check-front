@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(del \"d:\\\\CODING\\\\UNA-PROJECTS\\\\FACT-CHECK\\\\fact-check-front\\\\vercel.json\")"
     ]
   }
 }
