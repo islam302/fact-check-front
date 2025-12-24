@@ -7,6 +7,7 @@ body {
               linear-gradient(180deg, #0a1630 0%, #0e1c3f 100%);
 }
 
+
 /* Light mode background */
 body:not(.dark) {
   background: radial-gradient(1200px 800px at 50% -200px, rgba(59,130,246,0.1) 0%, transparent 60%),
