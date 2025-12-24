@@ -8,8 +8,8 @@ import unaLogoDark from "./assets/unalogo-dark.png";
 import unaLogoLight from "./assets/unalogo-light.png";
 
 // ======= Config =======
-const API_BASE_URL = "https://fact-check-api-32dx.onrender.com";  // Using localhost as in Postman
-const FACT_CHECK_URL = `${API_BASE_URL}/fact_check/`;  // Main endpoint from Postman
+const API_BASE_URL = "http://62.72.22.223";
+const FACT_CHECK_URL = `${API_BASE_URL}/fact_check/`;
 const COMPOSE_NEWS_URL = `${API_BASE_URL}/fact_check/compose_news/`;
 const COMPOSE_TWEET_URL = `${API_BASE_URL}/fact_check/compose_tweet/`;
 
