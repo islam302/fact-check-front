@@ -13,8 +13,8 @@ import unaLogoLight from "./assets/unalogo-light.png";
 const IS_DEV = import.meta.env.DEV;
 const API_BASE = IS_DEV ? "http://62.72.22.223" : "";
 const FACT_CHECK_URL = IS_DEV ? `${API_BASE}/fact_check/` : "/api/fact_check";
-const COMPOSE_NEWS_URL = IS_DEV ? `${API_BASE}/fact_check/compose_news/` : "/api/fact_check/compose_news";
-const COMPOSE_TWEET_URL = IS_DEV ? `${API_BASE}/fact_check/compose_tweet/` : "/api/fact_check/compose_tweet";
+const COMPOSE_NEWS_URL = IS_DEV ? `${API_BASE}/fact_check/compose_news/` : "/api/compose_news";
+const COMPOSE_TWEET_URL = IS_DEV ? `${API_BASE}/fact_check/compose_tweet/` : "/api/compose_tweet";
 
 // ======= i18n (AR / EN / FR) =======
 const TRANSLATIONS = {

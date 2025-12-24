@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   try {
-    const upstream = await fetch("http://62.72.22.223/fact_check/compose_news/", {
+    const upstream = await fetch("http://62.72.22.223/fact_check/compose_tweet/", {
       method: req.method,
       headers: { "Content-Type": "application/json" },
       body: req.method === "GET" ? undefined : JSON.stringify(req.body),
@@ -9,6 +9,6 @@ export default async function handler(req, res) {
     const data = await upstream.json();
     res.status(upstream.status).json(data);
   } catch (err) {
-    res.status(500).json({ detail: err.message });
+    res.status(500).json({ ok: false, detail: err.message });
   }
 }
