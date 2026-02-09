@@ -125,9 +125,10 @@ const TRANSLATIONS = {
 // ======= Helpers =======
 
 /**
- * Wraps fetch to handle mobile background suspension.
- * If fetch fails while the page was hidden (user switched apps),
- * it waits for the page to become visible and retries once.
+ * Wraps fetch + response reading to handle mobile background suspension.
+ * On mobile, both fetch() AND res.text() can fail when the page goes to background.
+ * This retries the FULL operation (fetch + read body) once if the page was hidden.
+ * Returns { res, text } on success.
  */
 function visibilityAwareFetch(url, options) {
   return new Promise((resolve, reject) => {
@@ -139,30 +140,40 @@ function visibilityAwareFetch(url, options) {
     };
     document.addEventListener("visibilitychange", onHide);
 
+    function cleanup() {
+      document.removeEventListener("visibilitychange", onHide);
+    }
+
     async function attempt() {
       try {
         const res = await fetch(url, options);
-        document.removeEventListener("visibilitychange", onHide);
-        resolve(res);
+        const text = await res.text();
+        cleanup();
+        resolve({ res, text });
       } catch (err) {
         if (wasHidden && !retried) {
           retried = true;
           wasHidden = false;
+
+          function doRetry() {
+            attempt();
+          }
+
           if (document.hidden) {
-            // Page is still hidden — wait until it becomes visible, then retry
+            // Page still hidden — wait for user to come back, then retry
             const onVisible = () => {
               if (document.visibilityState === "visible") {
                 document.removeEventListener("visibilitychange", onVisible);
-                attempt();
+                doRetry();
               }
             };
             document.addEventListener("visibilitychange", onVisible);
           } else {
-            // Page is already visible (user came back fast) — retry now
-            attempt();
+            // Page already visible — retry immediately
+            doRetry();
           }
         } else {
-          document.removeEventListener("visibilitychange", onHide);
+          cleanup();
           reject(err);
         }
       }
@@ -325,7 +336,7 @@ function AINeonFactChecker() {
         query: q
       });
       
-      const res = await visibilityAwareFetch(FACT_CHECK_URL, {
+      const { res, text } = await visibilityAwareFetch(FACT_CHECK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -334,8 +345,6 @@ function AINeonFactChecker() {
       });
 
       console.log("📡 Response status:", res.status, res.statusText);
-
-      const text = await res.text();
       console.log("📄 Response text:", text);
       
       if (!text.trim()) {
@@ -395,15 +404,13 @@ function AINeonFactChecker() {
       console.log("📰 Composing news via:", COMPOSE_NEWS_URL);
       console.log("📝 News request body:", requestBody);
       
-      const res = await visibilityAwareFetch(COMPOSE_NEWS_URL, {
+      const { res, text } = await visibilityAwareFetch(COMPOSE_NEWS_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
       console.log("📡 News response status:", res.status, res.statusText);
-
-      const text = await res.text();
       console.log("📄 News response text:", text);
       
       if (!text.trim()) {
@@ -458,15 +465,13 @@ function AINeonFactChecker() {
       console.log("🐦 Composing tweet via:", COMPOSE_TWEET_URL);
       console.log("📝 Tweet request body:", requestBody);
       
-      const res = await visibilityAwareFetch(COMPOSE_TWEET_URL, {
+      const { res, text } = await visibilityAwareFetch(COMPOSE_TWEET_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
       console.log("📡 Tweet response status:", res.status, res.statusText);
-
-      const text = await res.text();
       console.log("📄 Tweet response text:", text);
       
       if (!text.trim()) {
