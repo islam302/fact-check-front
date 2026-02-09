@@ -123,6 +123,55 @@ const TRANSLATIONS = {
 };
 
 // ======= Helpers =======
+
+/**
+ * Wraps fetch to handle mobile background suspension.
+ * If fetch fails while the page was hidden (user switched apps),
+ * it waits for the page to become visible and retries once.
+ */
+function visibilityAwareFetch(url, options) {
+  return new Promise((resolve, reject) => {
+    let wasHidden = false;
+    let retried = false;
+
+    const onHide = () => {
+      if (document.hidden) wasHidden = true;
+    };
+    document.addEventListener("visibilitychange", onHide);
+
+    async function attempt() {
+      try {
+        const res = await fetch(url, options);
+        document.removeEventListener("visibilitychange", onHide);
+        resolve(res);
+      } catch (err) {
+        if (wasHidden && !retried) {
+          retried = true;
+          wasHidden = false;
+          if (document.hidden) {
+            // Page is still hidden — wait until it becomes visible, then retry
+            const onVisible = () => {
+              if (document.visibilityState === "visible") {
+                document.removeEventListener("visibilitychange", onVisible);
+                attempt();
+              }
+            };
+            document.addEventListener("visibilitychange", onVisible);
+          } else {
+            // Page is already visible (user came back fast) — retry now
+            attempt();
+          }
+        } else {
+          document.removeEventListener("visibilitychange", onHide);
+          reject(err);
+        }
+      }
+    }
+
+    attempt();
+  });
+}
+
 const urlRegex =
   /((https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
 
@@ -276,10 +325,10 @@ function AINeonFactChecker() {
         query: q
       });
       
-      const res = await fetch(FACT_CHECK_URL, {
+      const res = await visibilityAwareFetch(FACT_CHECK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: q
         }),
       });
@@ -346,7 +395,7 @@ function AINeonFactChecker() {
       console.log("📰 Composing news via:", COMPOSE_NEWS_URL);
       console.log("📝 News request body:", requestBody);
       
-      const res = await fetch(COMPOSE_NEWS_URL, {
+      const res = await visibilityAwareFetch(COMPOSE_NEWS_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -409,7 +458,7 @@ function AINeonFactChecker() {
       console.log("🐦 Composing tweet via:", COMPOSE_TWEET_URL);
       console.log("📝 Tweet request body:", requestBody);
       
-      const res = await fetch(COMPOSE_TWEET_URL, {
+      const res = await visibilityAwareFetch(COMPOSE_TWEET_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
