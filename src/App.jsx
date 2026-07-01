@@ -11,10 +11,16 @@ import unaLogoLight from "./assets/unalogo-light.png";
 // In production (Vercel): use serverless proxy functions
 // In development: use direct API (requires running on http://localhost)
 const IS_DEV = import.meta.env.DEV;
-const API_BASE = IS_DEV ? "http://62.72.22.223" : "";
-const FACT_CHECK_URL = IS_DEV ? `${API_BASE}/fact_check/` : "/api/fact_check";
+// In dev we hit /fact_checker/... same-origin; the Vite proxy (vite.config.js)
+// forwards to the upstream and injects the X-API-Key.
+const API_BASE = IS_DEV ? "/fact_checker" : "";
+const FACT_CHECK_URL = IS_DEV ? `${API_BASE}/fact_check/google_overview_api/` : "/api/fact_check";
 const COMPOSE_NEWS_URL = IS_DEV ? `${API_BASE}/fact_check/compose_news/` : "/api/compose_news";
 const COMPOSE_TWEET_URL = IS_DEV ? `${API_BASE}/fact_check/compose_tweet/` : "/api/compose_tweet";
+
+// The API key is injected by a proxy — the Vite dev proxy in dev, the /api
+// serverless functions in prod — so the client only sends Content-Type.
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 // ======= i18n (AR / EN / FR) =======
 const TRANSLATIONS = {
@@ -338,7 +344,7 @@ function AINeonFactChecker() {
       
       const { res, text } = await visibilityAwareFetch(FACT_CHECK_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify({
           query: q
         }),
@@ -406,7 +412,7 @@ function AINeonFactChecker() {
       
       const { res, text } = await visibilityAwareFetch(COMPOSE_NEWS_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify(requestBody),
       });
 
@@ -467,7 +473,7 @@ function AINeonFactChecker() {
       
       const { res, text } = await visibilityAwareFetch(COMPOSE_TWEET_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify(requestBody),
       });
 
