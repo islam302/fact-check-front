@@ -209,7 +209,9 @@ function getDomain(u) {
 function faviconUrl(domain) {
   const d = (domain || "").trim();
   if (!d) return "";
-  return `https://icons.duckduckgo.com/ip3/${d}.ico`;
+  // Google's favicon service — rarely blocked by ad/privacy blockers,
+  // unlike icons.duckduckgo.com which triggers ERR_BLOCKED_BY_CLIENT.
+  return `https://www.google.com/s2/favicons?sz=64&domain=${d}`;
 }
 
 // ========= New: List-aware renderer (fix numbers mess) =========
